@@ -1,7 +1,7 @@
 import { Shader } from './lib/classes/Shader'
 import { ShaderProgram } from './lib/classes/ShaderProgram'
-import { fillColorFrag } from './lib/shaders/fillColor.frag'
-import { passThroughVert } from './lib/shaders/passThrough.vert'
+import { fillColorFrag } from './lib/shaders/testShaders/fillColor.frag'
+import { passThroughVert } from './lib/shaders/testShaders/passThrough.vert'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
