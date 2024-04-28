@@ -35,7 +35,12 @@ var positionAttributeLocation = gl.getAttribLocation(fillColorProgram.getProgram
 gl.enableVertexAttribArray(positionAttributeLocation);
 gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
+const texCoordAttributeLocation = gl.getAttribLocation(fillColorProgram.getProgram(), "texCoord");
+gl.enableVertexAttribArray(texCoordAttributeLocation);
+gl.vertexAttribPointer(texCoordAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+console.log('running', gl.canvas.width, gl.canvas.height)
 gl.clearColor(0.0, 0.0, 0.0, 1.0)
 gl.clear(gl.COLOR_BUFFER_BIT)
 gl.drawArrays(gl.TRIANGLES, 0, 6)
