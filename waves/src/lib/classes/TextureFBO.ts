@@ -1,9 +1,7 @@
-/** 
- * A framebuffer object wrapper class. We nee to be able to render to 
- * texture to use multiple frgment shaders in a single frame. We;re doing 2d
- * rendering so we don't need to worry about depth buffers.
+/**
+ * A class to create a framebuffer object with a texture attachment
  */
-export class FBO {
+export class TextureFBO {
     gl: WebGL2RenderingContext
     width: number
     height: number
@@ -39,8 +37,7 @@ export class FBO {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         return texture
     }
 
@@ -59,5 +56,10 @@ export class FBO {
     unbind() {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
         this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
+    }
+
+    bindTexture() {
+        this.gl.activeTexture(this.gl.TEXTURE0)
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture)
     }
 }

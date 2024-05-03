@@ -1,4 +1,4 @@
-import { FBO } from "./classes/FBO"
+import { RenderBufferFBO } from "./classes/RenderBufferFBO"
 
 /**
  * Draws a full-screen quad to the given FBO,
@@ -6,7 +6,7 @@ import { FBO } from "./classes/FBO"
  * 
  * @param fbo The FBO to draw to, or null to draw to the screen.
  */
-export const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
+export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | null) => {
     if (fbo) {
         fbo.bind()
     } else {

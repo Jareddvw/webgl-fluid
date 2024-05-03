@@ -1,3 +1,4 @@
+// Passthrough vertex shader that takes a texture coordinate and passes it to the fragment shader
 export const textureDisplayVert = /*glsl*/ `#version 300 es
 
 in vec2 position;
