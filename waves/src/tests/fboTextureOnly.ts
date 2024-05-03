@@ -13,6 +13,9 @@ import '../style.css'
 
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
+canvas.width = canvas.getBoundingClientRect().width
+canvas.height = canvas.getBoundingClientRect().height
+
 if (!canvas) {
     throw new Error('No canvas found')
 }
