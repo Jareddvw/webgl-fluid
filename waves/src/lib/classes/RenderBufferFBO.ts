@@ -54,8 +54,4 @@ export class RenderBufferFBO {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
         this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
     }
-
-    bindRead() {
-        this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.framebuffer)
-    }
 }
