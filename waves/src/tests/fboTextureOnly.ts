@@ -53,7 +53,8 @@ gl.drawArrays(gl.TRIANGLES, 0, 3)
 
 fbo.unbind()
 
-// now create a quad to render the texture to, then render that to the screen
+// now render that texture to another texture
+const quadTexture = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
 const textureVertShader = new Shader(gl, gl.VERTEX_SHADER, textureDisplayVert)
 const textureFragShader = new Shader(gl, gl.FRAGMENT_SHADER, textureDisplayFrag)
 const textureProgram = new ShaderProgram(gl, [textureVertShader, textureFragShader])
@@ -62,5 +63,7 @@ textureProgram.use()
 gl.activeTexture(gl.TEXTURE0)
 gl.bindTexture(gl.TEXTURE_2D, fbo.texture)
 gl.uniform1i(textureProgram.uniforms.texture, 0)
+draw(gl, quadTexture)
 
+// now render that texture to the screen
 draw(gl, null)

@@ -4,21 +4,21 @@
  * then swap them.
  */
 
-import { RenderBufferFBO } from "./RenderBufferFBO";
+import { TextureFBO } from "./TextureFBO";
 
 export class DoubleFBO {
     gl: WebGL2RenderingContext;
     width: number;
     height: number;
-    readFBO: RenderBufferFBO;
-    writeFBO: RenderBufferFBO;
+    readFBO: TextureFBO;
+    writeFBO: TextureFBO;
 
     constructor(gl: WebGL2RenderingContext, width: number, height: number) {
         this.gl = gl
         this.width = width
         this.height = height
-        this.readFBO = new RenderBufferFBO(gl, width, height)
-        this.writeFBO = new RenderBufferFBO(gl, width, height)
+        this.readFBO = new TextureFBO(gl, width, height)
+        this.writeFBO = new TextureFBO(gl, width, height)
     }
 
     swap() {
@@ -41,5 +41,12 @@ export class DoubleFBO {
 
     unbind() {
         this.writeFBO.unbind()
+    }
+
+    resize(width: number, height: number) {
+        this.width = width
+        this.height = height
+        this.readFBO.resize(width, height)
+        this.writeFBO.resize(width, height)
     }
 }

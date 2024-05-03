@@ -1,4 +1,6 @@
+import { DoubleFBO } from "./classes/DoubleFBO"
 import { RenderBufferFBO } from "./classes/RenderBufferFBO"
+import { TextureFBO } from "./classes/TextureFBO"
 
 /**
  * Draws a full-screen quad to the given FBO,
@@ -6,14 +8,13 @@ import { RenderBufferFBO } from "./classes/RenderBufferFBO"
  * 
  * @param fbo The FBO to draw to, or null to draw to the screen.
  */
-export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | null) => {
+export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | TextureFBO | null) => {
     if (fbo) {
         fbo.bind()
     } else {
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     }
-    
     const quadVertices = new Float32Array([
         -1, -1,
         -1, 1,
@@ -32,4 +33,12 @@ export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | null) =>
     gl.enableVertexAttribArray(0)
     
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
+}
+
+export const maybeResize = (canvas: HTMLCanvasElement, fbos: (DoubleFBO | TextureFBO)[]) => {
+    if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+        canvas.width = canvas.clientWidth
+        canvas.height = canvas.clientHeight
+        fbos.forEach(fbo => fbo.resize(canvas.width, canvas.height))
+    }
 }
