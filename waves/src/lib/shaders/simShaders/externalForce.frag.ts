@@ -16,6 +16,8 @@ uniform sampler2D velocityTexture;
 
 out vec4 color;
 
+// c = Fdt * exp(-(distance_from_impulse^2) / r)
+// v += c
 void main() {
     vec2 fragPos = texCoord;
     
