@@ -4,7 +4,7 @@
  */
 
 import { makeFBOs, makePrograms } from '../lib/programs'
-import { draw, getFPS } from '../lib/utils'
+import { colors, draw } from '../lib/utils'
 import '../style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -67,12 +67,9 @@ const {
     advectionFBO,
 } = makeFBOs(gl)
 
-const purple = [0.6, 0.1, 0.4, 1.0]
-const black = [0.0, 0.0, 0.0, 1.0]
-const empty = [0.0, 0.0, 0.0, 0.0]
-// Make a fullscreen purple quad texture as a starting point
+// Make a fullscreen empty quad texture (even alpha is 0) as a starting point
 fillColorProgram.use()
-gl.uniform4fv(fillColorProgram.uniforms.color, empty)
+gl.uniform4fv(fillColorProgram.uniforms.color, colors.empty)
 draw(gl, fillColorFBO.getWriteFBO())
 fillColorFBO.swap()
 

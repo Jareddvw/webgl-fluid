@@ -1,4 +1,3 @@
-import { getRGBFormat } from "../utils"
 
 /**
  * A class to create a framebuffer object with a texture attachment

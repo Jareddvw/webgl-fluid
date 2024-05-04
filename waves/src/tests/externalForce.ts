@@ -5,7 +5,7 @@
  * then we render the texture to the screen and see if the force was applied.
  */
 import { makeFBOs, makePrograms } from '../lib/programs'
-import { draw, maybeResize } from '../lib/utils'
+import { draw } from '../lib/utils'
 
 import '../style.css'
 
