@@ -4,12 +4,14 @@
  */
 
 import { makeFBOs, makePrograms } from '../lib/programs'
-import { colors, draw } from '../lib/utils'
+import { colors, draw, getFPS } from '../lib/utils'
 import '../style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
 canvas.width = canvas.getBoundingClientRect().width
 canvas.height = canvas.getBoundingClientRect().height
+
+const fpsDiv = document.getElementById('fps') as HTMLDivElement
 
 if (!canvas) {
     throw new Error('No canvas found')
@@ -18,7 +20,7 @@ const gl = canvas.getContext('webgl2')
 if (!gl) {
     throw new Error('WebGL2 not supported')
 }
-const gridScale = 0.3
+const gridScale = 1
 
 let mouseDown = false
 let force = [0, 0]
@@ -41,7 +43,7 @@ window.addEventListener('mousemove', (e) => {
         force = [diff.x, diff.y]
         lastMousePos =  [x, y]
         impulsePosition = [x, y]
-        impulseMagnitude = 500
+        impulseMagnitude = 1000
         impulseRadius = .0001
     }
 })
@@ -77,6 +79,23 @@ let inputFBO = fillColorFBO.getReadFBO()
 let time = performance.now()
 
 const render = () => {
+    // Advection shader
+    advectionProgram.use()
+    // set dt, gridScale, and texelDims
+    gl.uniform1f(advectionProgram.uniforms.dt, (performance.now() - time) / 1000)
+    gl.uniform1f(advectionProgram.uniforms.gridScale, gridScale)
+    gl.uniform2fv(advectionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
+    gl.uniform1i(advectionProgram.uniforms.useBilerp, 1)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+    gl.uniform1i(advectionProgram.uniforms.velocity, 0)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+    gl.uniform1i(advectionProgram.uniforms.quantity, 1)
+
+    draw(gl, advectionFBO.getWriteFBO())
+    advectionFBO.swap()
+
     // External force shader
     externalForceProgram.use()
     gl.uniform2fv(externalForceProgram.uniforms.force, force)
@@ -85,29 +104,12 @@ const render = () => {
     gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
     gl.uniform1f(externalForceProgram.uniforms.aspectRatio, gl.canvas.width / gl.canvas.height)
     gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+    gl.bindTexture(gl.TEXTURE_2D, advectionFBO.getReadFBO().texture)
     gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
 
     draw(gl, externalForceFBO.getWriteFBO())
     externalForceFBO.swap()
-    // inputFBO = externalForceFBO.getReadFBO()
-
-    // Advection shader
-    advectionProgram.use()
-    // set dt, rdx, and texelDims
-    gl.uniform1f(advectionProgram.uniforms.dt, (performance.now() - time) / 1000)
-    gl.uniform1f(advectionProgram.uniforms.gridScale, gridScale)
-    gl.uniform2fv(advectionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
-    gl.uniform1i(advectionProgram.uniforms.velocity, 0)
-    gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
-    gl.uniform1i(advectionProgram.uniforms.quantity, 1)
-
-    draw(gl, advectionFBO.getWriteFBO())
-    advectionFBO.swap()
-    inputFBO = advectionFBO.getReadFBO()
+    inputFBO = externalForceFBO.getReadFBO()
 
     // Render the velocity texture to the screen
     colorVelProgram.use()
@@ -117,6 +119,7 @@ const render = () => {
     draw(gl, null)
 
     time = performance.now()
+    fpsDiv.innerText = `FPS: ${getFPS().toPrecision(4)}`
     requestAnimationFrame(render)
 }
 

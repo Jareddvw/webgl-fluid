@@ -33,15 +33,19 @@ export class TextureFBO {
         }
         // console.log(getRGBFormat(gl))
         gl.bindTexture(gl.TEXTURE_2D, texture)
-        const oes_texture_float = gl.getExtension('OES_texture_float')
-        if (!oes_texture_float) {
-            console.error('No OES_texture_float support')
+        const color_buffer_float = gl.getExtension('EXT_color_buffer_float')
+        if (!color_buffer_float) {
+            console.error('No WEBGL_color_buffer_float support')
         }
-        const oes_texture_half_float = gl.getExtension('OES_texture_half_float')
-        if (!oes_texture_half_float) {
-            console.error('No OES_texture_half_float support')
-        }
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+        // const oes_texture_float = gl.getExtension('OES_texture_float')
+        // if (!oes_texture_float) {
+        //     console.error('No OES_texture_float support')
+        // }
+        // const oes_texture_half_float = gl.getExtension('OES_texture_half_float')
+        // if (!oes_texture_half_float) {
+        //     console.error('No OES_texture_half_float support')
+        // }
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null)
 
         // Set the filtering so we don't need mips and it's not blurry
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
