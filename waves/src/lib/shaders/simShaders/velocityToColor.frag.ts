@@ -26,17 +26,8 @@ void main() {
     vec4 velocity = texture(velocityTexture, texCoord);
     
     // velocity is stored in the xy channels, negative velocity is stored in the zw channels.
-    // We want to color the velocity based on the magnitude of the velocity, so we take the length of the xy channels.
     vec2 v = decodeVelocity(velocity);
-    float speed = length(v);
-
-    // map the speed to a color. The faster the speed, the more red the color. The 
-    // slower the speed, the more blue the color. Black is zero speed.
-    // as speed increases, we get exponentially more red.
-    // as speed decreases, we get exponentially more blue.
-    float red = 1.0 - exp(-speed);
-    float blue = 1.0 - exp(-speed);
-    float green = 0.0;
-    color = vec4(red, green, blue, 1.0);
-
-}`;
+    
+    color = vec4(abs(v), 0.0, 1.0);
+}
+`;
