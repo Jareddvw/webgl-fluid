@@ -8,6 +8,8 @@ import { velocityToColorFrag } from "./shaders/simShaders/velocityToColor.frag"
 import { fillColorFrag } from "./shaders/testShaders/fillColor.frag"
 import { textureDisplayVert } from "./shaders/testShaders/textureDisplay.vert"
 import { textureDisplayFrag } from "./shaders/testShaders/texureDisplay.frag"
+import { particlesFrag } from "./shaders/visShaders/particles.frag"
+import { particlesVert } from "./shaders/visShaders/particles.vert"
 
 export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: ShaderProgram } => {
     
@@ -29,6 +31,10 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
     const colorFrag = new Shader(gl, gl.FRAGMENT_SHADER, velocityToColorFrag)
     const colorVelProgram = new ShaderProgram(gl, [simpleVertShader, colorFrag])
 
+    const particleVert = new Shader(gl, gl.VERTEX_SHADER, particlesVert)
+    const particleFrag = new Shader(gl, gl.FRAGMENT_SHADER, particlesFrag)
+    const particleProgram = new ShaderProgram(gl, [particleVert, particleFrag])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -40,6 +46,8 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
         copyProgram,
         // renders the velocity texture to the screen
         colorVelProgram,
+        // draws particles
+        particleProgram,
     }
 }
 

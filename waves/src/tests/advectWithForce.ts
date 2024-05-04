@@ -53,14 +53,15 @@ window.addEventListener('mouseup', () => {
     impulseRadius = 0
 })
 
-gl.clearColor(0.0, 0.0, 0.0, 0.0)
+gl.clearColor(0.0, 0.0, 0.0, 1.0)
 gl.clear(gl.COLOR_BUFFER_BIT)
 
 const {
     fillColorProgram,
     externalForceProgram,
     advectionProgram,
-    colorVelProgram
+    colorVelProgram,
+    particleProgram,
 } = makePrograms(gl)
 
 const {
@@ -71,7 +72,7 @@ const {
 
 // Make a fullscreen empty quad texture (even alpha is 0) as a starting point
 fillColorProgram.use()
-gl.uniform4fv(fillColorProgram.uniforms.color, colors.empty)
+gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
 draw(gl, fillColorFBO.getWriteFBO())
 fillColorFBO.swap()
 
