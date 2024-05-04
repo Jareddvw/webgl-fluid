@@ -1,3 +1,5 @@
+import { getRGBFormat } from "../utils"
+
 /**
  * A class to create a framebuffer object with a texture attachment
  */
@@ -30,7 +32,16 @@ export class TextureFBO {
         if (!texture) {
             throw new Error('Error creating texture')
         }
+        // console.log(getRGBFormat(gl))
         gl.bindTexture(gl.TEXTURE_2D, texture)
+        const oes_texture_float = gl.getExtension('OES_texture_float')
+        if (!oes_texture_float) {
+            console.error('No OES_texture_float support')
+        }
+        const oes_texture_half_float = gl.getExtension('OES_texture_half_float')
+        if (!oes_texture_half_float) {
+            console.error('No OES_texture_half_float support')
+        }
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
 
         // Set the filtering so we don't need mips and it's not blurry

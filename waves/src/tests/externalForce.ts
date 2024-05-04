@@ -4,15 +4,7 @@
  * Then we use the external force shader to add a force to the texture,
  * then we render the texture to the screen and see if the force was applied.
  */
-import { DoubleFBO } from '../lib/classes/DoubleFBO'
-import { Shader } from '../lib/classes/Shader'
-import { ShaderProgram } from '../lib/classes/ShaderProgram'
-import { TextureFBO } from '../lib/classes/TextureFBO'
-import { externalForceFrag } from '../lib/shaders/simShaders/externalForce.frag'
-import { simpleVert } from '../lib/shaders/simShaders/simple.vert'
-import { fillColorFrag } from '../lib/shaders/testShaders/fillColor.frag'
-import { textureDisplayVert } from '../lib/shaders/testShaders/textureDisplay.vert'
-import { textureDisplayFrag } from '../lib/shaders/testShaders/texureDisplay.frag'
+import { makeFBOs, makePrograms } from '../lib/programs'
 import { draw, maybeResize } from '../lib/utils'
 
 import '../style.css'
@@ -31,15 +23,15 @@ if (!gl) {
 gl.clearColor(0.0, 0.0, 0.0, 1.0)
 gl.clear(gl.COLOR_BUFFER_BIT)
 
-const fillColorFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-const passThrough = new Shader(gl, gl.VERTEX_SHADER, textureDisplayVert)
-const fillColor = new Shader(gl, gl.FRAGMENT_SHADER, fillColorFrag)
-const fillColorProgram = new ShaderProgram(gl, [passThrough, fillColor])
+const {
+    fillColorProgram,
+    externalForceProgram,
+} = makePrograms(gl)
 
-const externalForceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-const simpleVertShader = new Shader(gl, gl.VERTEX_SHADER, simpleVert)
-const externalForceShader = new Shader(gl, gl.FRAGMENT_SHADER, externalForceFrag)
-const externalForceProgram = new ShaderProgram(gl, [simpleVertShader, externalForceShader])
+const {
+    fillColorFBO,
+    externalForceFBO
+} = makeFBOs(gl)
 
 let mouseDown = false
 let impulsePosition = [0, 0]
@@ -63,27 +55,14 @@ window.addEventListener('mouseup', () => {
     impulseRadius = 0
 })
 
-// Make a fullscreen quad texture
+// Make a fullscreen purple quad texture as a starting point
 fillColorProgram.use()
-// make the texture purple
 gl.uniform4fv(fillColorProgram.uniforms.color, [0.6, 0.1, 0.4, 1.0])
 draw(gl, fillColorFBO.getWriteFBO())
 fillColorFBO.swap()
 
-// now draw the filled texture to the screen
-const quadTexture = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
-const textureVertShader = new Shader(gl, gl.VERTEX_SHADER, textureDisplayVert)
-const textureFragShader = new Shader(gl, gl.FRAGMENT_SHADER, textureDisplayFrag)
-const textureProgram = new ShaderProgram(gl, [textureVertShader, textureFragShader])
-textureProgram.use()
-
-gl.activeTexture(gl.TEXTURE0)
-gl.bindTexture(gl.TEXTURE_2D, fillColorFBO.getReadFBO().texture)
-gl.uniform1i(textureProgram.uniforms.texture, 0)
-draw(gl, quadTexture)
-
+// Now we can start using the external force shader, with the purple quad as the input texture
 externalForceProgram.use()
-
 gl.uniform2fv(externalForceProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
 gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
 gl.uniform1f(externalForceProgram.uniforms.impulseMagnitude, impulseMagnitude)
@@ -96,8 +75,7 @@ draw(gl, externalForceFBO.getWriteFBO())
 externalForceFBO.swap()
 
 const render = () => {
-    maybeResize(canvas, [fillColorFBO, externalForceFBO])
-
+    // maybeResize(canvas, [fillColorFBO, externalForceFBO])
 
     externalForceProgram.use()
     gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
