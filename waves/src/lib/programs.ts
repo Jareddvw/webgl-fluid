@@ -2,7 +2,9 @@ import { DoubleFBO } from "./classes/DoubleFBO"
 import { Shader } from "./classes/Shader"
 import { ShaderProgram } from "./classes/ShaderProgram"
 import { advectFrag } from "./shaders/simShaders/advection.frag"
+import { divergenceFrag } from "./shaders/simShaders/divergence.frag"
 import { externalForceFrag } from "./shaders/simShaders/externalForce.frag"
+import { gradientSubtractFrag } from "./shaders/simShaders/gradientSubtract.frag"
 import { jacobiFrag } from "./shaders/simShaders/jacobi.frag"
 import { simpleVert } from "./shaders/simShaders/simple.vert"
 import { velocityToColorFrag } from "./shaders/simShaders/velocityToColor.frag"
@@ -43,6 +45,12 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
     const writeParticleFrag = new Shader(gl, gl.FRAGMENT_SHADER, writeParticlesFrag)
     const writeParticleProgram = new ShaderProgram(gl, [simpleVertShader, writeParticleFrag])
 
+    const divergenceFragShader = new Shader(gl, gl.FRAGMENT_SHADER, divergenceFrag)
+    const divergenceProgram = new ShaderProgram(gl, [simpleVertShader, divergenceFragShader])
+
+    const gradientSubtraction = new Shader(gl, gl.FRAGMENT_SHADER, gradientSubtractFrag)
+    const gradientSubtractionProgram = new ShaderProgram(gl, [simpleVertShader, gradientSubtraction])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -60,6 +68,10 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
         particleProgram,
         // jacobi iteration
         jacobiProgram,
+        // divergence of w (divergent velocity field)
+        divergenceProgram,
+        // calculate grad(P), subtract from w
+        gradientSubtractionProgram,
     }
 }
 
@@ -70,6 +82,9 @@ export const makeFBOs = (gl: WebGL2RenderingContext): { [key in string]: DoubleF
     const jacobiFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const tempFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const particlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const divergenceFreeFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
 
     return {
         fillColorFBO,
@@ -78,5 +93,8 @@ export const makeFBOs = (gl: WebGL2RenderingContext): { [key in string]: DoubleF
         jacobiFBO,
         tempFBO,
         particlesFBO,
+        pressureFBO,
+        divergenceFBO,
+        divergenceFreeFBO,
     }
 }

@@ -20,9 +20,10 @@ if (!gl) {
     throw new Error('WebGL2 not supported')
 }
 const gridScale = 0.5
-const JACOBI_ITERATIONS = 40
-const DIFFUSION_COEFFICIENT = 0.001
-const ADVECT_PARTICLES = true
+const JACOBI_ITERATIONS = 30
+const DIFFUSION_COEFFICIENT = 1.0
+const ADVECT_PARTICLES = false
+const USE_BILERP = true
 
 let mouseDown = false
 let force = [0, 0]
@@ -45,8 +46,8 @@ window.addEventListener('mousemove', (e) => {
         force = [diff.x, diff.y]
         lastMousePos =  [x, y]
         impulsePosition = [x, y]
-        impulseMagnitude = 1000
-        impulseRadius = .0005
+        impulseMagnitude = 10000
+        impulseRadius = .0001
     }
 })
 window.addEventListener('mouseup', () => {
@@ -65,6 +66,9 @@ const {
     colorVelProgram,
     writeParticleProgram,
     particleProgram,
+    jacobiProgram,
+    divergenceProgram,
+    gradientSubtractionProgram,
 } = makePrograms(gl)
 
 const {
@@ -72,6 +76,10 @@ const {
     externalForceFBO,
     advectionFBO,
     particlesFBO,
+    jacobiFBO,
+    divergenceFBO,
+    pressureFBO,
+    divergenceFreeFBO,
 } = makeFBOs(gl)
 
 // Make a fullscreen black quad texture as a starting point
@@ -96,7 +104,7 @@ const render = (now: number) => {
     gl.uniform1f(advectionProgram.uniforms.dt, deltaT)
     gl.uniform1f(advectionProgram.uniforms.gridScale, gridScale)
     gl.uniform2fv(advectionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    gl.uniform1i(advectionProgram.uniforms.useBilerp, 1)
+    gl.uniform1i(advectionProgram.uniforms.useBilerp, USE_BILERP ? 1 : 0)
     gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
     gl.uniform1i(advectionProgram.uniforms.velocity, 0)
@@ -115,8 +123,6 @@ const render = (now: number) => {
         particlesFBO.swap()
     }
 
-    // inputFBO = advectionFBO.getReadFBO()
-
     // External force shader
     externalForceProgram.use()
     gl.uniform2fv(externalForceProgram.uniforms.force, force)
@@ -132,21 +138,58 @@ const render = (now: number) => {
     externalForceFBO.swap()
     inputFBO = externalForceFBO.getReadFBO()
 
-    // Render the velocity texture to the screen
-    // colorVelProgram.use()
+    // get divergence of velocity field
+    // divergenceProgram.use()
     // gl.activeTexture(gl.TEXTURE0)
     // gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    // gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
+    // gl.uniform1i(divergenceProgram.uniforms.velocity, 0)
+    // gl.uniform1f(divergenceProgram.uniforms.gridScale, gridScale)
+    // gl.uniform2fv(divergenceProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
     // draw(gl, null)
 
-    drawParticles(
-        gl,
-        particlesFBO.getReadFBO().texture, 
-        inputFBO.texture,
-        particleProgram,
-        null
-    )
+    // Solve for viscous diffusion with jacobi method
+    const bTexture = inputFBO.texture
+    let jacobiInputFBO = externalForceFBO.getReadFBO()
+    jacobiProgram.use()
+    // deltaT of 0 can break the simulation, so we set it to 0.016
+    const delta = deltaT < 0.001 ? 0.016 : deltaT
+    const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * delta)
+    const rBeta = 1 / (4 + alpha)
+    gl.uniform1f(jacobiProgram.uniforms.alpha, alpha)
+    gl.uniform1f(jacobiProgram.uniforms.rBeta, rBeta)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, bTexture)
+    gl.uniform1i(jacobiProgram.uniforms.bTexture, 0)
+    gl.uniform2fv(jacobiProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
 
+    // solve for diffusion
+    for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, jacobiInputFBO.texture)
+        gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
+
+        draw(gl, jacobiFBO.getWriteFBO())
+        jacobiFBO.swap()
+        jacobiInputFBO = jacobiFBO.getReadFBO()
+    }
+    inputFBO = jacobiFBO.getReadFBO()
+
+    if (ADVECT_PARTICLES) {
+        drawParticles(
+            gl,
+            particlesFBO.getReadFBO().texture, 
+            inputFBO.texture,
+            particleProgram,
+            null
+        )
+    } else {
+        colorVelProgram.use()
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+        gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
+        draw(gl, null)
+    }
+    
     fpsDiv.innerText = `FPS: ${getFPS().toPrecision(3)}`
     requestAnimationFrame(render)
 }

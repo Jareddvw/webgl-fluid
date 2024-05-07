@@ -5,7 +5,7 @@
  * then we render the texture to the screen and see if the force was applied.
  */
 import { makeFBOs, makePrograms } from '../lib/programs'
-import { draw } from '../lib/utils'
+import { colors, draw } from '../lib/utils'
 
 import '../style.css'
 
@@ -26,6 +26,7 @@ gl.clear(gl.COLOR_BUFFER_BIT)
 const {
     fillColorProgram,
     externalForceProgram,
+    colorVelProgram,
 } = makePrograms(gl)
 
 const {
@@ -34,6 +35,8 @@ const {
 } = makeFBOs(gl)
 
 let mouseDown = false
+let force = [0, 0]
+let lastMousePos = [0, 0]
 let impulsePosition = [0, 0]
 let impulseMagnitude = 0
 let impulseRadius = 0
@@ -44,8 +47,15 @@ window.addEventListener('mousemove', (e) => {
     if (mouseDown) {
         const x = e.clientX / gl.canvas.width
         const y = 1 - e.clientY / gl.canvas.height
+        if (lastMousePos[0] === 0 && lastMousePos[1] === 0) {
+            lastMousePos = [x, y]
+        }
+        const diff = {x: x - lastMousePos[0], y: y - lastMousePos[1]}
+        // force direction is the direction of the mouse movement
+        force = [diff.x, diff.y]
+        lastMousePos =  [x, y]
         impulsePosition = [x, y]
-        impulseMagnitude = .001
+        impulseMagnitude = 1000
         impulseRadius = .0001
     }
 })
@@ -57,7 +67,7 @@ window.addEventListener('mouseup', () => {
 
 // Make a fullscreen purple quad texture as a starting point
 fillColorProgram.use()
-gl.uniform4fv(fillColorProgram.uniforms.color, [0.6, 0.1, 0.4, 1.0])
+gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
 draw(gl, fillColorFBO.getWriteFBO())
 fillColorFBO.swap()
 
@@ -78,22 +88,23 @@ const render = () => {
     // maybeResize(canvas, [fillColorFBO, externalForceFBO])
 
     externalForceProgram.use()
+    gl.uniform2fv(externalForceProgram.uniforms.force, force)
     gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
     gl.uniform1f(externalForceProgram.uniforms.impulseMagnitude, impulseMagnitude)
     gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
     gl.uniform1f(externalForceProgram.uniforms.aspectRatio, gl.canvas.width / gl.canvas.height)
-    // set the velocity uniform to the texture
     gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
     gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
 
-    // draw to the screen
-    draw(gl, null)
-
-    // draw to the FBO so that we have it for the next frame
     draw(gl, externalForceFBO.getWriteFBO())
     externalForceFBO.swap()
 
+    colorVelProgram.use()
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
+    gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
+    draw(gl, null)
     requestAnimationFrame(render)
 }
 
