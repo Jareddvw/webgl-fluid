@@ -61,7 +61,6 @@ const {
     externalForceProgram,
     advectionProgram,
     colorVelProgram,
-    particleProgram,
 } = makePrograms(gl)
 
 const {

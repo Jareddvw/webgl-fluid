@@ -5,6 +5,7 @@ precision highp float;
 precision highp sampler2D;
 
 in vec2 texCoord;
+in float indexOut;
 
 uniform sampler2D velocityTexture;
 
