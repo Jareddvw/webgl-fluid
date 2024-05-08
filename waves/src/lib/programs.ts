@@ -85,6 +85,7 @@ export const makeFBOs = (gl: WebGL2RenderingContext): { [key in string]: DoubleF
     const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFreeFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
 
     return {
         fillColorFBO,
@@ -96,5 +97,6 @@ export const makeFBOs = (gl: WebGL2RenderingContext): { [key in string]: DoubleF
         pressureFBO,
         divergenceFBO,
         divergenceFreeFBO,
+        velocityFBO,
     }
 }

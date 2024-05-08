@@ -108,3 +108,38 @@ export const colors = {
     black: [0.0, 0.0, 0.0, 1.0],
     empty: [0.0, 0.0, 0.0, 0.0],
 }
+
+/**
+ * Solves Ax = b for x using the Jacobi method.
+ */
+export const solvePoisson = (
+    gl: WebGL2RenderingContext,
+    jacobiProgram: ShaderProgram,
+    jacobiFBO: DoubleFBO,
+    inputFBO: TextureFBO,
+    bTexture: WebGLTexture,
+    alpha: number,
+    rBeta: number,
+    numIterations: number,
+): TextureFBO => {
+    let jacobiInputFBO = inputFBO;
+    jacobiProgram.use()
+    gl.uniform1f(jacobiProgram.uniforms.alpha, alpha)
+    gl.uniform1f(jacobiProgram.uniforms.rBeta, rBeta)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, bTexture)
+    gl.uniform1i(jacobiProgram.uniforms.bTexture, 0)
+    gl.uniform2fv(jacobiProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
+
+    // solve for diffusion
+    for (let i = 0; i < numIterations; i++) {
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, jacobiInputFBO.texture)
+        gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
+
+        draw(gl, jacobiFBO.getWriteFBO())
+        jacobiFBO.swap()
+        jacobiInputFBO = jacobiFBO.getReadFBO()
+    }
+    return jacobiFBO.getReadFBO()
+}

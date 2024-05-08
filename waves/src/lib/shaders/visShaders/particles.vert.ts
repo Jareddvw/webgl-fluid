@@ -28,7 +28,7 @@ void main() {
 
     // 3. decode the value into a position
     texCoord = value.xy;
-    gl_PointSize = 0.1;
+    gl_PointSize = 1.0;
     // scale back from [0, 1] to [-1, 1]
     gl_Position = vec4(value.xy * 2.0 - 1.0, 0.0, 1.0);
 }`

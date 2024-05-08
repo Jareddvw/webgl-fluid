@@ -2,8 +2,9 @@
  * The main simulation logic.
  */
 
+import { TextureFBO } from './lib/classes/TextureFBO'
 import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawParticles, getFPS } from './lib/utils'
+import { colors, draw, drawParticles, getFPS, solvePoisson } from './lib/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -23,30 +24,35 @@ const gridScale = 0.5
 const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const ADVECT_PARTICLES = false
+const DRAW_PARTICLES = false
 const USE_BILERP = true
+const DIFFUSE = true
 
 let mouseDown = false
-let force = [0, 0]
+let impulseDirection = [0, 0]
 let lastMousePos = [0, 0]
 let impulsePosition = [0, 0]
 let impulseMagnitude = 0
 let impulseRadius = 0
-window.addEventListener('mousedown', () => {
+window.addEventListener('mousedown', (e) => {
+    const x = e.clientX / gl.canvas.width
+    const y = 1 - e.clientY / gl.canvas.height
     mouseDown = true
+    lastMousePos = [x, y]
 })
 window.addEventListener('mousemove', (e) => {
     if (mouseDown) {
         const x = e.clientX / gl.canvas.width
         const y = 1 - e.clientY / gl.canvas.height
-        if (lastMousePos[0] === 0 && lastMousePos[1] === 0) {
-            lastMousePos = [x, y]
-        }
-        const diff = {x: x - lastMousePos[0], y: y - lastMousePos[1]}  
+        const diff = [x - lastMousePos[0], y - lastMousePos[1]]
         // force direction is the direction of the mouse movement
-        force = [diff.x, diff.y]
+        // normalize diff for direction
+        const len = Math.sqrt(diff[0] * diff[0] + diff[1] * diff[1])
+        const normalizedDiff = (len === 0) ? [0, 0] : [diff[0] / len, diff[1] / len]
+        impulseDirection = normalizedDiff
         lastMousePos =  [x, y]
         impulsePosition = [x, y]
-        impulseMagnitude = 10000
+        impulseMagnitude = 100
         impulseRadius = .0001
     }
 })
@@ -54,6 +60,7 @@ window.addEventListener('mouseup', () => {
     mouseDown = false
     impulseMagnitude = 0
     impulseRadius = 0
+    impulseDirection = [0, 0]
 })
 
 gl.clearColor(0.0, 0.0, 0.0, 1.0)
@@ -125,7 +132,7 @@ const render = (now: number) => {
 
     // External force shader
     externalForceProgram.use()
-    gl.uniform2fv(externalForceProgram.uniforms.force, force)
+    gl.uniform2fv(externalForceProgram.uniforms.impulseDirection, impulseDirection)
     gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
     gl.uniform1f(externalForceProgram.uniforms.impulseMagnitude, impulseMagnitude)
     gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
@@ -138,43 +145,70 @@ const render = (now: number) => {
     externalForceFBO.swap()
     inputFBO = externalForceFBO.getReadFBO()
 
-    // get divergence of velocity field
-    // divergenceProgram.use()
-    // gl.activeTexture(gl.TEXTURE0)
-    // gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    // gl.uniform1i(divergenceProgram.uniforms.velocity, 0)
-    // gl.uniform1f(divergenceProgram.uniforms.gridScale, gridScale)
-    // gl.uniform2fv(divergenceProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    // draw(gl, null)
-
     // Solve for viscous diffusion with jacobi method
-    const bTexture = inputFBO.texture
-    let jacobiInputFBO = externalForceFBO.getReadFBO()
-    jacobiProgram.use()
-    // deltaT of 0 can break the simulation, so we set it to 0.016
-    const delta = deltaT < 0.001 ? 0.016 : deltaT
-    const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * delta)
-    const rBeta = 1 / (4 + alpha)
-    gl.uniform1f(jacobiProgram.uniforms.alpha, alpha)
-    gl.uniform1f(jacobiProgram.uniforms.rBeta, rBeta)
+    if (DIFFUSE) {
+        // deltaT of 0 can break the simulation, so we set it to 0.016
+        const delta = deltaT < 0.001 ? 0.016 : deltaT
+        const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * delta)
+        const rBeta = 1 / (4 + alpha)
+        inputFBO = solvePoisson(
+            gl,
+            jacobiProgram,
+            jacobiFBO,
+            externalForceFBO.getReadFBO(),
+            inputFBO.texture,
+            alpha,
+            rBeta,
+            JACOBI_ITERATIONS
+        )
+    }
+
+    // get divergence of velocity field
+    divergenceProgram.use()
     gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, bTexture)
+    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+    gl.uniform1i(divergenceProgram.uniforms.velocity, 0)
+    gl.uniform1f(divergenceProgram.uniforms.gridScale, gridScale)
+    gl.uniform2fv(divergenceProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
+    draw(gl, divergenceFBO.getWriteFBO())
+    divergenceFBO.swap()
+
+    // solve for pressure
+    const pressureAlpha = -gridScale * gridScale
+    const pressureRBeta = 0.25
+    jacobiProgram.use()
+    gl.uniform1f(jacobiProgram.uniforms.alpha, pressureAlpha)
+    gl.uniform1f(jacobiProgram.uniforms.rBeta, pressureRBeta)
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, divergenceFBO.getReadFBO().texture)
     gl.uniform1i(jacobiProgram.uniforms.bTexture, 0)
     gl.uniform2fv(jacobiProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-
-    // solve for diffusion
+    let pressureInputFBO = pressureFBO.getReadFBO()
+    
     for (let i = 0; i < JACOBI_ITERATIONS; i++) {
         gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, jacobiInputFBO.texture)
+        gl.bindTexture(gl.TEXTURE_2D, pressureInputFBO.texture)
         gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
-
-        draw(gl, jacobiFBO.getWriteFBO())
-        jacobiFBO.swap()
-        jacobiInputFBO = jacobiFBO.getReadFBO()
+        draw(gl, pressureFBO.getWriteFBO())
+        pressureFBO.swap()
+        pressureInputFBO = pressureFBO.getReadFBO()
     }
-    inputFBO = jacobiFBO.getReadFBO()
 
-    if (ADVECT_PARTICLES) {
+    // subtract grad(P) from w
+    gradientSubtractionProgram.use()
+    gl.activeTexture(gl.TEXTURE0)
+    gl.bindTexture(gl.TEXTURE_2D, pressureInputFBO.texture)
+    gl.uniform1i(gradientSubtractionProgram.uniforms.pressure, 0)
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+    gl.uniform1i(gradientSubtractionProgram.uniforms.velocity, 1)
+    gl.uniform1f(gradientSubtractionProgram.uniforms.halfrdx, 0.5 / gridScale)
+    gl.uniform2fv(gradientSubtractionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
+    draw(gl, divergenceFreeFBO.getWriteFBO())
+    divergenceFreeFBO.swap()
+    // inputFBO = divergenceFreeFBO.getReadFBO()
+
+    if (DRAW_PARTICLES) {
         drawParticles(
             gl,
             particlesFBO.getReadFBO().texture, 
@@ -185,7 +219,7 @@ const render = (now: number) => {
     } else {
         colorVelProgram.use()
         gl.activeTexture(gl.TEXTURE0)
-        gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
+        gl.bindTexture(gl.TEXTURE_2D, divergenceFreeFBO.getReadFBO().texture)
         gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
         draw(gl, null)
     }

@@ -7,7 +7,7 @@ precision highp sampler2D;
 
 in vec2 texCoord;
 
-uniform vec2 force;
+uniform vec2 impulseDirection;
 uniform vec2 impulsePosition;
 uniform float impulseRadius;
 uniform float impulseMagnitude;
@@ -23,7 +23,7 @@ void main() {
     
     vec2 diff = impulsePosition - fragPos;
     diff.y /= aspectRatio;
-    vec2 c = exp(-dot(diff, diff) / impulseRadius) * vec2(force.xy) * impulseMagnitude;
+    vec2 c = exp(-dot(diff, diff) / impulseRadius) * vec2(impulseDirection.xy) * impulseMagnitude;
 
     vec2 velocity = texture(velocityTexture, fragPos).xy;
     vec2 newVelocity = velocity + c;
