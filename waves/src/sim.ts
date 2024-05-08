@@ -24,9 +24,11 @@ const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const ADVECT_PARTICLES = false
 const DRAW_PARTICLES = false
-const REMOVE_DIVERGENCE = true
 const USE_BILERP = true
 const DIFFUSE = true
+
+type Field = 'velocity' | 'pressure' | 'divergence'
+const selectedField = document.getElementById('field') as HTMLSelectElement
 
 let mouseDown = false
 let impulseDirection = [0, 0]
@@ -207,8 +209,17 @@ const render = (now: number) => {
         )
     } else {
         colorVelProgram.use()
-        const velocityTexture = inputFBO.texture;
-        colorVelProgram.setTexture('velocity', velocityTexture, 0)
+        switch (selectedField.value as Field) {
+            case 'velocity':
+                colorVelProgram.setTexture('velocity', inputFBO.texture, 0)
+                break;
+            case 'pressure':
+                colorVelProgram.setTexture('velocity', pressureFBO.getReadFBO().texture, 0)
+                break;
+            case 'divergence':
+                colorVelProgram.setTexture('velocity', divergenceFBO.getReadFBO().texture, 0)
+                break;
+        }
         draw(gl, null)
     }
     

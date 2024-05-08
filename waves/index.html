@@ -8,7 +8,14 @@
   </head>
   <body>
     <canvas id="waves"></canvas>
-    <div id="fps"></div>
+    <div id="info">
+      <div id="fps"></div>
+      <select id="field">
+        <option value="velocity" selected>velocity</option>
+        <option value="pressure">pressure</option>
+        <option value="divergence">divergence</option>
+      </select>
+    </div>
     <script type="module" src="/src/sim.ts"></script>
   </body>
 </html>

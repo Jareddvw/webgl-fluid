@@ -12,11 +12,27 @@ canvas {
   height: 100%;
 }
 
-#fps {
+#info {
   position: absolute;
   top: 0;
   right: 0;
   padding: 5px;
   background: rgba(0, 0, 0, 0.5);
   color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: monospace;
+}
+
+#fps {
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+#field {
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px;
 }
