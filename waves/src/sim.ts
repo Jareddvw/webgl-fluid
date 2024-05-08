@@ -161,42 +161,41 @@ const render = (now: number) => {
         inputFBO = jacobiFBO.getReadFBO()
     }
 
-    if (REMOVE_DIVERGENCE) {
-        // get divergence of velocity field
-        divergenceProgram.use()
-        divergenceProgram.setUniforms({
-            velocity: inputFBO.texture,
-            gridScale,
-            texelDims,
-        })
-        draw(gl, divergenceFBO.getWriteFBO())
-        divergenceFBO.swap()
+    // get divergence of velocity field
+    divergenceProgram.use()
+    divergenceProgram.setUniforms({
+        velocity: inputFBO.texture,
+        gridScale,
+        texelDims,
+    })
+    draw(gl, divergenceFBO.getWriteFBO())
+    divergenceFBO.swap()
 
-        // solve for pressure
-        jacobiProgram.use()
-        jacobiProgram.setUniforms({
-            alpha: -gridScale * gridScale,
-            rBeta: 0.25,
-            texelDims,
-            bTexture: divergenceFBO.getReadFBO().texture,
-        })
-        for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-            jacobiProgram.setTexture('xTexture', pressureFBO.getReadFBO().texture, 1)
-            draw(gl, pressureFBO.getWriteFBO())
-            pressureFBO.swap()
-        }
-
-        // u = w - grad(P)
-        gradientSubtractionProgram.use()
-        gradientSubtractionProgram.setUniforms({
-            pressure: pressureFBO.getReadFBO().texture,
-            divergentVelocity: inputFBO.texture,
-            halfrdx: 0.5 / gridScale,
-            texelDims,
-        })
-        draw(gl, divergenceFreeFBO.getWriteFBO())
-        divergenceFreeFBO.swap()
+    // solve for pressure
+    jacobiProgram.use()
+    jacobiProgram.setUniforms({
+        alpha: -gridScale * gridScale,
+        rBeta: 0.25,
+        texelDims,
+        bTexture: divergenceFBO.getReadFBO().texture,
+    })
+    for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+        jacobiProgram.setTexture('xTexture', pressureFBO.getReadFBO().texture, 1)
+        draw(gl, pressureFBO.getWriteFBO())
+        pressureFBO.swap()
     }
+
+    // u = w - grad(P)
+    gradientSubtractionProgram.use()
+    gradientSubtractionProgram.setUniforms({
+        pressure: pressureFBO.getReadFBO().texture,
+        divergentVelocity: inputFBO.texture,
+        halfrdx: 0.5 / gridScale,
+        texelDims,
+    })
+    draw(gl, divergenceFreeFBO.getWriteFBO())
+    divergenceFreeFBO.swap()
+    inputFBO = divergenceFreeFBO.getReadFBO()
 
     if (DRAW_PARTICLES) {
         drawParticles(
@@ -208,11 +207,7 @@ const render = (now: number) => {
         )
     } else {
         colorVelProgram.use()
-        const velocityTexture = (
-            REMOVE_DIVERGENCE ? 
-                divergenceFreeFBO.getReadFBO().texture : 
-                inputFBO.texture
-        )
+        const velocityTexture = inputFBO.texture;
         colorVelProgram.setTexture('velocity', velocityTexture, 0)
         draw(gl, null)
     }
