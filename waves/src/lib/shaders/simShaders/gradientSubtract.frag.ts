@@ -24,7 +24,7 @@ void main() {
 
     vec2 vel = texture(divergentVelocity, texCoord).xy;
 
-    vec2 gradient = vec2(pR - pL, pT - pB) * halfrdx;
+    vec2 gradient = vec2(pR - pL, pT - pB);
 
     color = vec4(vel - gradient, 0.0, 1.0);
 }

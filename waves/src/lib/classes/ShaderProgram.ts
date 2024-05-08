@@ -53,4 +53,40 @@ export class ShaderProgram {
     use() {
         this.gl.useProgram(this.program)
     }
+
+    setFloat(name: string, value: number) {
+        this.gl.uniform1f(this.uniforms[name], value)
+    }
+
+    setVec2(name: string, value: number[]) {
+        this.gl.uniform2fv(this.uniforms[name], value)
+    }
+
+    setVec3(name: string, value: number[]) {
+        this.gl.uniform3fv(this.uniforms[name], value)
+    }
+
+    setTexture(name: string, texture: WebGLTexture, index: number) {
+        this.gl.activeTexture(this.gl.TEXTURE0 + index)
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+        this.gl.uniform1i(this.uniforms[name], index)
+    }
+
+    setUniforms(uniforms: {[key: string]: any}) {
+        let numTextures = 0
+        for (const [key, value] of Object.entries(uniforms)) {
+            if (typeof value === 'number') {
+                this.setFloat(key, value)
+            } else if (Array.isArray(value)) {
+                if (value.length === 2) {
+                    this.setVec2(key, value)
+                } else if (value.length === 3) {
+                    this.setVec3(key, value)
+                }
+            } else if (value instanceof WebGLTexture) {
+                this.setTexture(key, value, numTextures)
+                numTextures += 1
+            }
+        }
+    }
 }

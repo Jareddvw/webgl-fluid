@@ -2,7 +2,6 @@
  * The main simulation logic.
  */
 
-import { TextureFBO } from './lib/classes/TextureFBO'
 import { makeFBOs, makePrograms } from './lib/programs'
 import { colors, draw, drawParticles, getFPS, solvePoisson } from './lib/utils'
 import './style.css'
@@ -25,6 +24,7 @@ const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const ADVECT_PARTICLES = false
 const DRAW_PARTICLES = false
+const REMOVE_DIVERGENCE = true
 const USE_BILERP = true
 const DIFFUSE = true
 
@@ -100,113 +100,103 @@ draw(gl, particlesFBO.getWriteFBO())
 particlesFBO.swap()
 
 let inputFBO = fillColorFBO.getReadFBO()
-let time = performance.now()
+let prev = performance.now()
 
 const render = (now: number) => {
-    const deltaT = (now - time) / 1000
-    time = now
+    const diff = now - prev
+    const deltaT = diff === 0 ? 0.016 : (now - prev) / 1000
+    prev = now
+    const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height]
+    
     // Advection shader
     advectionProgram.use()
-    // set dt, gridScale, and texelDims
-    gl.uniform1f(advectionProgram.uniforms.dt, deltaT)
-    gl.uniform1f(advectionProgram.uniforms.gridScale, gridScale)
-    gl.uniform2fv(advectionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    gl.uniform1i(advectionProgram.uniforms.useBilerp, USE_BILERP ? 1 : 0)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    gl.uniform1i(advectionProgram.uniforms.velocity, 0)
-    gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    gl.uniform1i(advectionProgram.uniforms.quantity, 1)
-
+    advectionProgram.setUniforms({
+        dt: deltaT,
+        gridScale,
+        texelDims,
+        useBilerp: USE_BILERP ? 1 : 0,
+        velocity: inputFBO.texture,
+        quantity: inputFBO.texture,
+    })
     draw(gl, advectionFBO.getWriteFBO())
     advectionFBO.swap()
 
     if (ADVECT_PARTICLES) {
-        gl.bindTexture(gl.TEXTURE_2D, particlesFBO.getReadFBO().texture)
-        gl.uniform1i(advectionProgram.uniforms.quantity, 1)
-
+        advectionProgram.setTexture('quantity', particlesFBO.getReadFBO().texture, 1)
         draw(gl, particlesFBO.getWriteFBO())
         particlesFBO.swap()
     }
 
     // External force shader
     externalForceProgram.use()
-    gl.uniform2fv(externalForceProgram.uniforms.impulseDirection, impulseDirection)
-    gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
-    gl.uniform1f(externalForceProgram.uniforms.impulseMagnitude, impulseMagnitude)
-    gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
-    gl.uniform1f(externalForceProgram.uniforms.aspectRatio, gl.canvas.width / gl.canvas.height)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, advectionFBO.getReadFBO().texture)
-    gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
-
+    externalForceProgram.setUniforms({
+        impulseDirection,
+        impulsePosition,
+        impulseMagnitude,
+        impulseRadius,
+        aspectRatio: gl.canvas.width / gl.canvas.height,
+        velocity: advectionFBO.getReadFBO().texture,
+    })
     draw(gl, externalForceFBO.getWriteFBO())
     externalForceFBO.swap()
     inputFBO = externalForceFBO.getReadFBO()
 
     // Solve for viscous diffusion with jacobi method
     if (DIFFUSE) {
-        // deltaT of 0 can break the simulation, so we set it to 0.016
-        const delta = deltaT < 0.001 ? 0.016 : deltaT
-        const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * delta)
-        const rBeta = 1 / (4 + alpha)
-        inputFBO = solvePoisson(
-            gl,
-            jacobiProgram,
-            jacobiFBO,
-            externalForceFBO.getReadFBO(),
-            inputFBO.texture,
+        const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * deltaT)
+        jacobiProgram.use()
+        jacobiProgram.setUniforms({
             alpha,
-            rBeta,
-            JACOBI_ITERATIONS
-        )
+            rBeta: 1 / (4 + alpha),
+            texelDims,
+            bTexture: inputFBO.texture,
+        })
+        let jacobiInputFBO = inputFBO
+        for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+            jacobiProgram.setTexture('xTexture', jacobiInputFBO.texture, 1)
+            draw(gl, jacobiFBO.getWriteFBO())
+            jacobiFBO.swap()
+            jacobiInputFBO = jacobiFBO.getReadFBO()
+        }
+        inputFBO = jacobiFBO.getReadFBO()
     }
 
-    // get divergence of velocity field
-    divergenceProgram.use()
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    gl.uniform1i(divergenceProgram.uniforms.velocity, 0)
-    gl.uniform1f(divergenceProgram.uniforms.gridScale, gridScale)
-    gl.uniform2fv(divergenceProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    draw(gl, divergenceFBO.getWriteFBO())
-    divergenceFBO.swap()
+    if (REMOVE_DIVERGENCE) {
+        // get divergence of velocity field
+        divergenceProgram.use()
+        divergenceProgram.setUniforms({
+            velocity: inputFBO.texture,
+            gridScale,
+            texelDims,
+        })
+        draw(gl, divergenceFBO.getWriteFBO())
+        divergenceFBO.swap()
 
-    // solve for pressure
-    const pressureAlpha = -gridScale * gridScale
-    const pressureRBeta = 0.25
-    jacobiProgram.use()
-    gl.uniform1f(jacobiProgram.uniforms.alpha, pressureAlpha)
-    gl.uniform1f(jacobiProgram.uniforms.rBeta, pressureRBeta)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, divergenceFBO.getReadFBO().texture)
-    gl.uniform1i(jacobiProgram.uniforms.bTexture, 0)
-    gl.uniform2fv(jacobiProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    let pressureInputFBO = pressureFBO.getReadFBO()
-    
-    for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-        gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, pressureInputFBO.texture)
-        gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
-        draw(gl, pressureFBO.getWriteFBO())
-        pressureFBO.swap()
-        pressureInputFBO = pressureFBO.getReadFBO()
+        // solve for pressure
+        jacobiProgram.use()
+        jacobiProgram.setUniforms({
+            alpha: -gridScale * gridScale,
+            rBeta: 0.25,
+            texelDims,
+            bTexture: divergenceFBO.getReadFBO().texture,
+        })
+        for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+            jacobiProgram.setTexture('xTexture', pressureFBO.getReadFBO().texture, 1)
+            draw(gl, pressureFBO.getWriteFBO())
+            pressureFBO.swap()
+        }
+
+        // u = w - grad(P)
+        gradientSubtractionProgram.use()
+        gradientSubtractionProgram.setUniforms({
+            pressure: pressureFBO.getReadFBO().texture,
+            divergentVelocity: inputFBO.texture,
+            halfrdx: 0.5 / gridScale,
+            texelDims,
+        })
+        draw(gl, divergenceFreeFBO.getWriteFBO())
+        divergenceFreeFBO.swap()
     }
-
-    // subtract grad(P) from w
-    gradientSubtractionProgram.use()
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, pressureInputFBO.texture)
-    gl.uniform1i(gradientSubtractionProgram.uniforms.pressure, 0)
-    gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
-    gl.uniform1i(gradientSubtractionProgram.uniforms.velocity, 1)
-    gl.uniform1f(gradientSubtractionProgram.uniforms.halfrdx, 0.5 / gridScale)
-    gl.uniform2fv(gradientSubtractionProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
-    draw(gl, divergenceFreeFBO.getWriteFBO())
-    divergenceFreeFBO.swap()
-    // inputFBO = divergenceFreeFBO.getReadFBO()
 
     if (DRAW_PARTICLES) {
         drawParticles(
@@ -218,9 +208,12 @@ const render = (now: number) => {
         )
     } else {
         colorVelProgram.use()
-        gl.activeTexture(gl.TEXTURE0)
-        gl.bindTexture(gl.TEXTURE_2D, divergenceFreeFBO.getReadFBO().texture)
-        gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
+        const velocityTexture = (
+            REMOVE_DIVERGENCE ? 
+                divergenceFreeFBO.getReadFBO().texture : 
+                inputFBO.texture
+        )
+        colorVelProgram.setTexture('velocity', velocityTexture, 0)
         draw(gl, null)
     }
     
@@ -228,4 +221,4 @@ const render = (now: number) => {
     requestAnimationFrame(render)
 }
 
-render(time)
+render(prev)
