@@ -68,7 +68,7 @@ window.addEventListener('mouseup', () => {
 // Make a fullscreen purple quad texture as a starting point
 fillColorProgram.use()
 gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
-draw(gl, fillColorFBO.getWriteFBO())
+draw(gl, fillColorFBO.writeFBO)
 fillColorFBO.swap()
 
 // Now we can start using the external force shader, with the purple quad as the input texture
@@ -78,10 +78,10 @@ gl.uniform2fv(externalForceProgram.uniforms.impulsePosition, impulsePosition)
 gl.uniform1f(externalForceProgram.uniforms.impulseMagnitude, impulseMagnitude)
 gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
 gl.activeTexture(gl.TEXTURE0)
-gl.bindTexture(gl.TEXTURE_2D, fillColorFBO.getReadFBO().texture)
+gl.bindTexture(gl.TEXTURE_2D, fillColorFBO.readFBO.texture)
 gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
 
-draw(gl, externalForceFBO.getWriteFBO())
+draw(gl, externalForceFBO.writeFBO)
 externalForceFBO.swap()
 
 const render = () => {
@@ -94,15 +94,15 @@ const render = () => {
     gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
     gl.uniform1f(externalForceProgram.uniforms.aspectRatio, gl.canvas.width / gl.canvas.height)
     gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
+    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.readFBO.texture)
     gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
 
-    draw(gl, externalForceFBO.getWriteFBO())
+    draw(gl, externalForceFBO.writeFBO)
     externalForceFBO.swap()
 
     colorVelProgram.use()
     gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.getReadFBO().texture)
+    gl.bindTexture(gl.TEXTURE_2D, externalForceFBO.readFBO.texture)
     gl.uniform1i(colorVelProgram.uniforms.velocity, 0)
     draw(gl, null)
     requestAnimationFrame(render)

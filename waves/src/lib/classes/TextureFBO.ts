@@ -58,16 +58,6 @@ export class TextureFBO {
         this.gl.viewport(0, 0, this.width, this.height)
     }
 
-    unbind() {
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-        this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
-    }
-
-    bindTexture() {
-        this.gl.activeTexture(this.gl.TEXTURE0)
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture)
-    }
-
     /** 
      * Resizes the textures
      * and copies the old texture data to the new texture

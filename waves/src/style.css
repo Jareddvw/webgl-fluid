@@ -16,6 +16,7 @@ canvas {
   position: absolute;
   top: 0;
   right: 0;
+  gap: 5px;
   padding: 5px;
   color: white;
   display: flex;
@@ -34,4 +35,10 @@ canvas {
   background: rgba(0, 0, 0, 0.5);
   color: white;
   padding: 5px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }

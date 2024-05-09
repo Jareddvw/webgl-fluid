@@ -160,9 +160,9 @@ export const solvePoisson = (
         gl.bindTexture(gl.TEXTURE_2D, jacobiInputFBO.texture)
         gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
 
-        draw(gl, jacobiFBO.getWriteFBO())
+        draw(gl, jacobiFBO.writeFBO)
         jacobiFBO.swap()
-        jacobiInputFBO = jacobiFBO.getReadFBO()
+        jacobiInputFBO = jacobiFBO.readFBO
     }
-    return jacobiFBO.getReadFBO()
+    return jacobiFBO.readFBO
 }

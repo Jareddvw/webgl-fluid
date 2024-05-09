@@ -72,10 +72,10 @@ const {
 // Make a fullscreen empty quad texture (even alpha is 0) as a starting point
 fillColorProgram.use()
 gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
-draw(gl, fillColorFBO.getWriteFBO())
+draw(gl, fillColorFBO.writeFBO)
 fillColorFBO.swap()
 
-let inputFBO = fillColorFBO.getReadFBO()
+let inputFBO = fillColorFBO.readFBO
 let time = performance.now()
 
 const render = () => {
@@ -93,7 +93,7 @@ const render = () => {
     gl.bindTexture(gl.TEXTURE_2D, inputFBO.texture)
     gl.uniform1i(advectionProgram.uniforms.quantity, 1)
 
-    draw(gl, advectionFBO.getWriteFBO())
+    draw(gl, advectionFBO.writeFBO)
     advectionFBO.swap()
 
     // External force shader
@@ -104,12 +104,12 @@ const render = () => {
     gl.uniform1f(externalForceProgram.uniforms.impulseRadius, impulseRadius)
     gl.uniform1f(externalForceProgram.uniforms.aspectRatio, gl.canvas.width / gl.canvas.height)
     gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, advectionFBO.getReadFBO().texture)
+    gl.bindTexture(gl.TEXTURE_2D, advectionFBO.readFBO.texture)
     gl.uniform1i(externalForceProgram.uniforms.velocity, 0)
 
-    draw(gl, externalForceFBO.getWriteFBO())
+    draw(gl, externalForceFBO.writeFBO)
     externalForceFBO.swap()
-    inputFBO = externalForceFBO.getReadFBO()
+    inputFBO = externalForceFBO.readFBO
 
     // Render the velocity texture to the screen
     colorVelProgram.use()

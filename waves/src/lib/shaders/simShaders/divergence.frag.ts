@@ -22,5 +22,5 @@ void main() {
     float top = texture(velocity, topNeighbor).y;
 
     float divergence = 0.5 * gridScale * (right - left + top - bottom);
-    color = vec4(divergence, divergence, 0.0, 1.0);
+    color = vec4(divergence, 0.0, 0.0, 1.0);
 }`

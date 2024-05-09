@@ -27,20 +27,8 @@ export class DoubleFBO {
         this.writeFBO = temp
     }
 
-    getReadFBO() {
-        return this.readFBO
-    }
-
-    getWriteFBO() {
-        return this.writeFBO
-    }
-
     bind() {
         this.writeFBO.bind()
-    }
-
-    unbind() {
-        this.writeFBO.unbind()
     }
 
     resize(width: number, height: number) {

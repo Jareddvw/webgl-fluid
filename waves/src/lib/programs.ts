@@ -1,6 +1,7 @@
 import { DoubleFBO } from "./classes/DoubleFBO"
 import { Shader } from "./classes/Shader"
 import { ShaderProgram } from "./classes/ShaderProgram"
+import { advectParticleFrag } from "./shaders/simShaders/advectParticle.frag"
 import { advectFrag } from "./shaders/simShaders/advection.frag"
 import { boundaryCondVert } from "./shaders/simShaders/boundary.vert"
 import { boundaryCondFrag } from "./shaders/simShaders/boundaryCond.frag"
@@ -61,6 +62,9 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
     const boundaryFragShader = new Shader(gl, gl.FRAGMENT_SHADER, boundaryCondFrag)
     const boundaryProgram = new ShaderProgram(gl, [boundaryVertShader, boundaryFragShader])
 
+    const advectParticleFragShader = new Shader(gl, gl.FRAGMENT_SHADER, advectParticleFrag)
+    const advectParticleProgram = new ShaderProgram(gl, [simpleVertShader, advectParticleFragShader])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -84,6 +88,8 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
         gradientSubtractionProgram,
         // boundary conditions
         boundaryProgram,
+        // forward advection of particles
+        advectParticleProgram,
     }
 }
 

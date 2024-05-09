@@ -23,13 +23,14 @@ const gridScale = 0.8
 const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
-const MANUAL_BILERP = true
 
-const ADVECT_PARTICLES = false
+const ADVECT_PARTICLES = true
 let DRAW_PARTICLES = false
 
 type Field = 'velocity' | 'pressure' | 'particles'
 const selectedField = document.getElementById('field') as HTMLSelectElement
+
+const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
 
 let mouseDown = false
 let impulseDirection = [0, 0]
@@ -80,6 +81,7 @@ const {
     divergenceProgram,
     gradientSubtractionProgram,
     boundaryProgram,
+    advectParticleProgram
 } = makePrograms(gl)
 
 const {
@@ -92,66 +94,29 @@ const {
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
 gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
-draw(gl, velocityFBO.getWriteFBO())
-draw(gl, particlesFBO.getWriteFBO())
+draw(gl, velocityFBO.writeFBO)
+draw(gl, particlesFBO.writeFBO)
 velocityFBO.swap()
 
 writeParticleProgram.use()
-draw(gl, particlesFBO.getWriteFBO())
+draw(gl, particlesFBO.writeFBO)
 particlesFBO.swap()
 
-let inputFBO = velocityFBO.getReadFBO()
+let inputFBO = velocityFBO.readFBO
 let prev = performance.now()
 
 // TODO: draw lines in the direction of the velocity field.
 
 const render = (now: number) => {
-    // if (selectedField.value === 'particles') {
-    //     DRAW_PARTICLES = true
-    // } else {
-    //     DRAW_PARTICLES = false
-    // }
+    if (selectedField.value === 'particles') {
+        DRAW_PARTICLES = true
+    } else {
+        DRAW_PARTICLES = false
+    }
     const diff = now - prev
     const deltaT = diff === 0 ? 0.016 : (now - prev) / 1000
     prev = now
     const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height]
-    
-    // Advection shader
-    advectionProgram.use()
-    advectionProgram.setUniforms({
-        dt: deltaT,
-        gridScale,
-        texelDims,
-        useBilerp: MANUAL_BILERP ? 1 : 0,
-        velocity: inputFBO.texture,
-        quantity: inputFBO.texture,
-    })
-    draw(gl, velocityFBO.getWriteFBO())
-    velocityFBO.swap()
-
-    if (ADVECT_PARTICLES) {
-        advectionProgram.setTexture('quantity', particlesFBO.getReadFBO().texture, 2)
-        draw(gl, particlesFBO.getWriteFBO())
-        particlesFBO.swap()
-    }
-
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: -1,
-        x: velocityFBO.getReadFBO().texture,
-        texelDims
-    })
-    draw(gl, velocityFBO.getWriteFBO())
-    velocityFBO.swap()
-
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: 1,
-        x: pressureFBO.getReadFBO().texture,
-        texelDims
-    })
-    draw(gl, pressureFBO.getWriteFBO())
-    pressureFBO.swap()
 
     // External force shader
     externalForceProgram.use()
@@ -161,11 +126,58 @@ const render = (now: number) => {
         impulseMagnitude,
         impulseRadius,
         aspectRatio: gl.canvas.width / gl.canvas.height,
-        velocity: velocityFBO.getReadFBO().texture,
+        velocity: velocityFBO.readFBO.texture,
     })
-    draw(gl, velocityFBO.getWriteFBO())
+    draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
-    inputFBO = velocityFBO.getReadFBO()
+    inputFBO = velocityFBO.readFBO
+    
+    // Advection shader
+    advectionProgram.use()
+    advectionProgram.setUniforms({
+        dt: deltaT,
+        gridScale,
+        texelDims,
+        useBilerp: bilerpCheckbox.checked ? 1 : 0,
+        velocity: inputFBO.texture,
+        quantity: inputFBO.texture,
+    })
+    draw(gl, velocityFBO.writeFBO)
+    velocityFBO.swap()
+
+    if (ADVECT_PARTICLES) {
+        advectParticleProgram.use()
+        advectParticleProgram.setUniforms({
+            dt: deltaT,
+            gridScale,
+            texelDims,
+            velocity: velocityFBO.readFBO.texture,
+            quantity: particlesFBO.readFBO.texture,
+        })
+        draw(gl, particlesFBO.writeFBO)
+        particlesFBO.swap()
+    }
+
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: -1,
+        x: velocityFBO.readFBO.texture,
+        texelDims,
+        threshold: 0.001,
+    })
+    draw(gl, velocityFBO.writeFBO)
+    velocityFBO.swap()
+
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: 1,
+        x: pressureFBO.readFBO.texture,
+        texelDims
+    })
+    draw(gl, pressureFBO.writeFBO)
+    pressureFBO.swap()
+
+    
 
     // Solve for viscous diffusion with jacobi method
     if (DIFFUSE) {
@@ -175,16 +187,14 @@ const render = (now: number) => {
             alpha,
             rBeta: 1 / (4 + alpha),
             texelDims,
-            bTexture: velocityFBO.getReadFBO().texture,
+            bTexture: velocityFBO.readFBO.texture,
         })
-        let jacobiInputFBO = inputFBO
         for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-            jacobiProgram.setTexture('xTexture', jacobiInputFBO.texture, 1)
-            draw(gl, velocityFBO.getWriteFBO())
+            jacobiProgram.setTexture('xTexture', velocityFBO.readFBO.texture, 1)
+            draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
-            jacobiInputFBO = velocityFBO.getReadFBO()
         }
-        inputFBO = velocityFBO.getReadFBO()
+        inputFBO = velocityFBO.readFBO
     }
 
     // get divergence of velocity field
@@ -194,7 +204,7 @@ const render = (now: number) => {
         gridScale,
         texelDims,
     })
-    draw(gl, divergenceFBO.getWriteFBO())
+    draw(gl, divergenceFBO.writeFBO)
     divergenceFBO.swap()
 
     // solve for pressure
@@ -203,30 +213,30 @@ const render = (now: number) => {
         alpha: -gridScale * gridScale,
         rBeta: 0.25,
         texelDims,
-        bTexture: divergenceFBO.getReadFBO().texture,
+        bTexture: divergenceFBO.readFBO.texture,
     })
     for (let i = 0; i < JACOBI_ITERATIONS; i++) {
-        jacobiProgram.setTexture('xTexture', pressureFBO.getReadFBO().texture, 1)
-        draw(gl, pressureFBO.getWriteFBO())
+        jacobiProgram.setTexture('xTexture', pressureFBO.readFBO.texture, 1)
+        draw(gl, pressureFBO.writeFBO)
         pressureFBO.swap()
     }
 
     // u = w - grad(P)
     gradientSubtractionProgram.use()
     gradientSubtractionProgram.setUniforms({
-        pressure: pressureFBO.getReadFBO().texture,
+        pressure: pressureFBO.readFBO.texture,
         divergentVelocity: inputFBO.texture,
         halfrdx: 0.5 / gridScale,
         texelDims,
     })
-    draw(gl, velocityFBO.getWriteFBO())
+    draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
-    inputFBO = velocityFBO.getReadFBO()
+    inputFBO = velocityFBO.readFBO
 
     if (DRAW_PARTICLES) {
         drawParticles(
             gl,
-            particlesFBO.getReadFBO().texture, 
+            particlesFBO.readFBO.texture, 
             inputFBO.texture,
             particleProgram,
             null
@@ -238,7 +248,7 @@ const render = (now: number) => {
                 colorVelProgram.setTexture('velocity', inputFBO.texture, 0)
                 break;
             case 'pressure':
-                colorVelProgram.setTexture('velocity', pressureFBO.getReadFBO().texture, 0)
+                colorVelProgram.setTexture('velocity', pressureFBO.readFBO.texture, 0)
                 break;
         }
         draw(gl, null)
