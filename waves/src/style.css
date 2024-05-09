@@ -17,7 +17,6 @@ canvas {
   top: 0;
   right: 0;
   padding: 5px;
-  background: rgba(0, 0, 0, 0.5);
   color: white;
   display: flex;
   flex-direction: column;

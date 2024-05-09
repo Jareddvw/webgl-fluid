@@ -2,6 +2,8 @@ import { DoubleFBO } from "./classes/DoubleFBO"
 import { Shader } from "./classes/Shader"
 import { ShaderProgram } from "./classes/ShaderProgram"
 import { advectFrag } from "./shaders/simShaders/advection.frag"
+import { boundaryCondVert } from "./shaders/simShaders/boundary.vert"
+import { boundaryCondFrag } from "./shaders/simShaders/boundaryCond.frag"
 import { divergenceFrag } from "./shaders/simShaders/divergence.frag"
 import { externalForceFrag } from "./shaders/simShaders/externalForce.frag"
 import { gradientSubtractFrag } from "./shaders/simShaders/gradientSubtract.frag"
@@ -15,7 +17,11 @@ import { particlesFrag } from "./shaders/visShaders/particles.frag"
 import { particlesVert } from "./shaders/visShaders/particles.vert"
 import { writeParticlesFrag } from "./shaders/visShaders/writeParticles.frag"
 
-export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: ShaderProgram } => {
+type ProgramRecord = { [key in string]: ShaderProgram }
+type FBORecord = { [key in string]: DoubleFBO }
+
+
+export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
     
     const passThrough = new Shader(gl, gl.VERTEX_SHADER, textureDisplayVert)
     const fillColor = new Shader(gl, gl.FRAGMENT_SHADER, fillColorFrag)
@@ -51,6 +57,10 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
     const gradientSubtraction = new Shader(gl, gl.FRAGMENT_SHADER, gradientSubtractFrag)
     const gradientSubtractionProgram = new ShaderProgram(gl, [simpleVertShader, gradientSubtraction])
 
+    const boundaryVertShader = new Shader(gl, gl.VERTEX_SHADER, boundaryCondVert)
+    const boundaryFragShader = new Shader(gl, gl.FRAGMENT_SHADER, boundaryCondFrag)
+    const boundaryProgram = new ShaderProgram(gl, [boundaryVertShader, boundaryFragShader])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -72,10 +82,12 @@ export const makePrograms = (gl: WebGL2RenderingContext): { [key in string]: Sha
         divergenceProgram,
         // calculate grad(P), subtract from w
         gradientSubtractionProgram,
+        // boundary conditions
+        boundaryProgram,
     }
 }
 
-export const makeFBOs = (gl: WebGL2RenderingContext): { [key in string]: DoubleFBO } => {
+export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
     const fillColorFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const externalForceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const advectionFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)

@@ -37,21 +37,10 @@ export class TextureFBO {
         if (!color_buffer_float) {
             console.error('No WEBGL_color_buffer_float support')
         }
-        // const oes_texture_float = gl.getExtension('OES_texture_float')
-        // if (!oes_texture_float) {
-        //     console.error('No OES_texture_float support')
-        // }
-        // const oes_texture_half_float = gl.getExtension('OES_texture_half_float')
-        // if (!oes_texture_half_float) {
-        //     console.error('No OES_texture_half_float support')
-        // }
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null)
 
-        // Set the filtering so we don't need mips and it's not blurry
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-        // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
         return texture

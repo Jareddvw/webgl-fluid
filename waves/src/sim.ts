@@ -3,7 +3,7 @@
  */
 
 import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawParticles, getFPS, solvePoisson } from './lib/utils'
+import { colors, draw, drawLines, drawParticles, getFPS, solvePoisson } from './lib/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -19,15 +19,16 @@ const gl = canvas.getContext('webgl2')
 if (!gl) {
     throw new Error('WebGL2 not supported')
 }
-const gridScale = 0.5
+const gridScale = 0.8
 const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
-const ADVECT_PARTICLES = false
-const DRAW_PARTICLES = false
-const USE_BILERP = true
-const DIFFUSE = true
+const DIFFUSE = false
+const MANUAL_BILERP = true
 
-type Field = 'velocity' | 'pressure' | 'divergence'
+const ADVECT_PARTICLES = false
+let DRAW_PARTICLES = false
+
+type Field = 'velocity' | 'pressure' | 'particles'
 const selectedField = document.getElementById('field') as HTMLSelectElement
 
 let mouseDown = false
@@ -50,12 +51,12 @@ window.addEventListener('mousemove', (e) => {
         // force direction is the direction of the mouse movement
         // normalize diff for direction
         const len = Math.sqrt(diff[0] * diff[0] + diff[1] * diff[1])
-        const normalizedDiff = (len === 0) ? [0, 0] : [diff[0] / len, diff[1] / len]
+        const normalizedDiff = (len === 0 || len < 0.002) ? [0, 0] : [diff[0] / len, diff[1] / len]
         impulseDirection = normalizedDiff
         lastMousePos =  [x, y]
         impulsePosition = [x, y]
-        impulseMagnitude = 100
-        impulseRadius = .0001
+        impulseMagnitude = 1
+        impulseRadius = .0002
     }
 })
 window.addEventListener('mouseup', () => {
@@ -78,6 +79,7 @@ const {
     jacobiProgram,
     divergenceProgram,
     gradientSubtractionProgram,
+    boundaryProgram,
 } = makePrograms(gl)
 
 const {
@@ -89,12 +91,14 @@ const {
     divergenceFBO,
     pressureFBO,
     divergenceFreeFBO,
+    velocityFBO,
 } = makeFBOs(gl)
 
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
 gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
 draw(gl, fillColorFBO.getWriteFBO())
+draw(gl, particlesFBO.getWriteFBO())
 fillColorFBO.swap()
 
 writeParticleProgram.use()
@@ -104,7 +108,14 @@ particlesFBO.swap()
 let inputFBO = fillColorFBO.getReadFBO()
 let prev = performance.now()
 
+// TODO: draw lines in the direction of the velocity field.
+
 const render = (now: number) => {
+    // if (selectedField.value === 'particles') {
+    //     DRAW_PARTICLES = true
+    // } else {
+    //     DRAW_PARTICLES = false
+    // }
     const diff = now - prev
     const deltaT = diff === 0 ? 0.016 : (now - prev) / 1000
     prev = now
@@ -116,7 +127,7 @@ const render = (now: number) => {
         dt: deltaT,
         gridScale,
         texelDims,
-        useBilerp: USE_BILERP ? 1 : 0,
+        useBilerp: MANUAL_BILERP ? 1 : 0,
         velocity: inputFBO.texture,
         quantity: inputFBO.texture,
     })
@@ -124,10 +135,28 @@ const render = (now: number) => {
     advectionFBO.swap()
 
     if (ADVECT_PARTICLES) {
-        advectionProgram.setTexture('quantity', particlesFBO.getReadFBO().texture, 1)
+        advectionProgram.setTexture('quantity', particlesFBO.getReadFBO().texture, 2)
         draw(gl, particlesFBO.getWriteFBO())
         particlesFBO.swap()
     }
+
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: -1,
+        x: advectionFBO.getReadFBO().texture,
+        texelDims
+    })
+    draw(gl, advectionFBO.getWriteFBO())
+    advectionFBO.swap()
+
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: 1,
+        x: pressureFBO.getReadFBO().texture,
+        texelDims
+    })
+    draw(gl, pressureFBO.getWriteFBO())
+    pressureFBO.swap()
 
     // External force shader
     externalForceProgram.use()
@@ -215,9 +244,6 @@ const render = (now: number) => {
                 break;
             case 'pressure':
                 colorVelProgram.setTexture('velocity', pressureFBO.getReadFBO().texture, 0)
-                break;
-            case 'divergence':
-                colorVelProgram.setTexture('velocity', divergenceFBO.getReadFBO().texture, 0)
                 break;
         }
         draw(gl, null)

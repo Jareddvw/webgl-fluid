@@ -35,7 +35,7 @@ void main() {
     vec4 v = texture(velocity, coords);
     
     // Get the quantity at the current position, q(x, t)
-    vec4 q = bilerp(quantity, coords);
+    vec4 q = texture(quantity, coords);
 
     // Combine for q(x - u(x, t) * dt, t)
     vec2 newPos = coords - v.xy * dt * gridScale;

@@ -36,6 +36,29 @@ export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | TextureF
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
 }
 
+/** Draws 4 lines around the whole texture */
+export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO) => {
+    fbo.bind()
+    const lineVertices = new Float32Array([
+        -1, -1,
+        1, -1,
+        1, -1,
+        1, 1,
+    ])
+    const lineBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.STATIC_DRAW)
+
+    const vertexOrder = new Uint16Array([0, 1, 2, 3])
+    const indexBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, vertexOrder, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(0)
+
+    gl.drawElements(gl.LINES, 4, gl.UNSIGNED_SHORT, 0)
+}
+
 export const drawParticles = (
     gl: WebGL2RenderingContext, 
     particleTexture: WebGLTexture,
