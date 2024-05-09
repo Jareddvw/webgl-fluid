@@ -88,27 +88,15 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
 }
 
 export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
-    const fillColorFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const externalForceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const advectionFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const jacobiFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const tempFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const particlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const divergenceFreeFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
 
     return {
-        fillColorFBO,
-        externalForceFBO,
-        advectionFBO,
-        jacobiFBO,
-        tempFBO,
         particlesFBO,
         pressureFBO,
         divergenceFBO,
-        divergenceFreeFBO,
         velocityFBO,
     }
 }

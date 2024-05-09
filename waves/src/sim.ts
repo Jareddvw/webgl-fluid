@@ -83,29 +83,24 @@ const {
 } = makePrograms(gl)
 
 const {
-    fillColorFBO,
-    externalForceFBO,
-    advectionFBO,
     particlesFBO,
-    jacobiFBO,
     divergenceFBO,
     pressureFBO,
-    divergenceFreeFBO,
     velocityFBO,
 } = makeFBOs(gl)
 
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
 gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
-draw(gl, fillColorFBO.getWriteFBO())
+draw(gl, velocityFBO.getWriteFBO())
 draw(gl, particlesFBO.getWriteFBO())
-fillColorFBO.swap()
+velocityFBO.swap()
 
 writeParticleProgram.use()
 draw(gl, particlesFBO.getWriteFBO())
 particlesFBO.swap()
 
-let inputFBO = fillColorFBO.getReadFBO()
+let inputFBO = velocityFBO.getReadFBO()
 let prev = performance.now()
 
 // TODO: draw lines in the direction of the velocity field.
@@ -131,8 +126,8 @@ const render = (now: number) => {
         velocity: inputFBO.texture,
         quantity: inputFBO.texture,
     })
-    draw(gl, advectionFBO.getWriteFBO())
-    advectionFBO.swap()
+    draw(gl, velocityFBO.getWriteFBO())
+    velocityFBO.swap()
 
     if (ADVECT_PARTICLES) {
         advectionProgram.setTexture('quantity', particlesFBO.getReadFBO().texture, 2)
@@ -143,11 +138,11 @@ const render = (now: number) => {
     boundaryProgram.use()
     boundaryProgram.setUniforms({
         scale: -1,
-        x: advectionFBO.getReadFBO().texture,
+        x: velocityFBO.getReadFBO().texture,
         texelDims
     })
-    draw(gl, advectionFBO.getWriteFBO())
-    advectionFBO.swap()
+    draw(gl, velocityFBO.getWriteFBO())
+    velocityFBO.swap()
 
     boundaryProgram.use()
     boundaryProgram.setUniforms({
@@ -166,11 +161,11 @@ const render = (now: number) => {
         impulseMagnitude,
         impulseRadius,
         aspectRatio: gl.canvas.width / gl.canvas.height,
-        velocity: advectionFBO.getReadFBO().texture,
+        velocity: velocityFBO.getReadFBO().texture,
     })
-    draw(gl, externalForceFBO.getWriteFBO())
-    externalForceFBO.swap()
-    inputFBO = externalForceFBO.getReadFBO()
+    draw(gl, velocityFBO.getWriteFBO())
+    velocityFBO.swap()
+    inputFBO = velocityFBO.getReadFBO()
 
     // Solve for viscous diffusion with jacobi method
     if (DIFFUSE) {
@@ -180,16 +175,16 @@ const render = (now: number) => {
             alpha,
             rBeta: 1 / (4 + alpha),
             texelDims,
-            bTexture: inputFBO.texture,
+            bTexture: velocityFBO.getReadFBO().texture,
         })
         let jacobiInputFBO = inputFBO
         for (let i = 0; i < JACOBI_ITERATIONS; i++) {
             jacobiProgram.setTexture('xTexture', jacobiInputFBO.texture, 1)
-            draw(gl, jacobiFBO.getWriteFBO())
-            jacobiFBO.swap()
-            jacobiInputFBO = jacobiFBO.getReadFBO()
+            draw(gl, velocityFBO.getWriteFBO())
+            velocityFBO.swap()
+            jacobiInputFBO = velocityFBO.getReadFBO()
         }
-        inputFBO = jacobiFBO.getReadFBO()
+        inputFBO = velocityFBO.getReadFBO()
     }
 
     // get divergence of velocity field
@@ -224,9 +219,9 @@ const render = (now: number) => {
         halfrdx: 0.5 / gridScale,
         texelDims,
     })
-    draw(gl, divergenceFreeFBO.getWriteFBO())
-    divergenceFreeFBO.swap()
-    inputFBO = divergenceFreeFBO.getReadFBO()
+    draw(gl, velocityFBO.getWriteFBO())
+    velocityFBO.swap()
+    inputFBO = velocityFBO.getReadFBO()
 
     if (DRAW_PARTICLES) {
         drawParticles(
