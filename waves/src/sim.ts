@@ -3,7 +3,7 @@
  */
 
 import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawLines, drawParticles, getFPS, solvePoisson } from './lib/utils'
+import { colors, draw, drawParticles, getFPS } from './lib/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -231,13 +231,12 @@ const render = (now: number) => {
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
-    inputFBO = velocityFBO.readFBO
 
     if (DRAW_PARTICLES) {
         drawParticles(
             gl,
             particlesFBO.readFBO.texture, 
-            inputFBO.texture,
+            velocityFBO.readFBO.texture,
             particleProgram,
             null
         )
@@ -245,7 +244,7 @@ const render = (now: number) => {
         colorVelProgram.use()
         switch (selectedField.value as Field) {
             case 'velocity':
-                colorVelProgram.setTexture('velocity', inputFBO.texture, 0)
+                colorVelProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)
                 break;
             case 'pressure':
                 colorVelProgram.setTexture('velocity', pressureFBO.readFBO.texture, 0)

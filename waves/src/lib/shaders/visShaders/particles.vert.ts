@@ -8,11 +8,13 @@ layout(location=0) in float index;
 
 uniform sampler2D particles;
 uniform vec2 canvasSize;
+uniform float numParticles;
 
 out vec2 texCoord;
 out float indexOut;
 
-// given an index and the canvas width and height, return the xy position of the particle
+// given an index and the canvas width and height, 
+// return the xy position of the particle
 vec2 decode(float index, vec2 canvasSize) {
     vec2 texelSize = 1.0 / canvasSize;
     float y = floor(index / canvasSize.x);
@@ -27,8 +29,9 @@ void main() {
     vec4 value = texture(particles, decode(index, canvasSize));
 
     // 3. decode the value into a position
-    texCoord = value.xy * 2.0;
+    texCoord = value.xy;
+
     gl_PointSize = 1.0;
     // scale back from [0, 1] to [-1, 1]
-    gl_Position = vec4(value.xy * 2.0 - 1.0, 0.0, 1.0);
+    gl_Position = vec4((value.xy * 2.0 - 1.0), 0.0, 1.0);
 }`

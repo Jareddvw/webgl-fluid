@@ -25,24 +25,24 @@ void main() {
     // TODO: make this less hacky and so that it works for real...
     if (coords.x <= threshold) {
         color = boundary(coords, vec2(1.0, 0.0), scale, x);
-        if (coords.x < threshold) {
-            color = vec4(0.0);
-        }
+        // if (coords.x < threshold) {
+        //     color = vec4(0.0);
+        // }
     } else if (coords.x >= 1.0 - threshold) {
         color = boundary(coords, vec2(-1.0, 0.0), scale, x);
-        if (coords.x > 1.0 - threshold) {
-            color = vec4(0.0);
-        }
+        // if (coords.x > 1.0 - threshold) {
+        //     color = vec4(0.0);
+        // }
     } else if (coords.y <= threshold) {
         color = boundary(coords, vec2(0.0, 1.0), scale, x);
-        if (coords.y < threshold) {
-            color = vec4(0.0);
-        }
+        // if (coords.y < threshold) {
+        //     color = vec4(0.0);
+        // }
     } else if (coords.y >= 1.0 - threshold) {
         color = boundary(coords, vec2(0.0, -1.0), scale, x);
-        if (coords.y > 1.0 - threshold) {
-            color = vec4(0.0);
-        }
+        // if (coords.y > 1.0 - threshold) {
+        //     color = vec4(0.0);
+        // }
     } else {
         color = texture(x, coords);
     }

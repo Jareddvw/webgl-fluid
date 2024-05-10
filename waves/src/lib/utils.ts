@@ -74,19 +74,18 @@ export const drawParticles = (
     }
     // draw canvas.width * canvas.height number of points
     particleProgram.use()
-    const numParticles = gl.canvas.width * gl.canvas.height
+    const numParticles = gl.canvas.width * gl.canvas.height / 4
     const indexList = [];
     for (let i = 0; i < numParticles; i++) {
-        indexList.push(i)
+        indexList.push(i * 4)
     }
     const indices = new Float32Array(indexList)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, particleTexture)
-    gl.uniform1i(particleProgram.uniforms.particles, 0)
-    gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, velocityTexture)
-    gl.uniform1i(particleProgram.uniforms.velocityTexture, 1)
-    gl.uniform2fv(particleProgram.uniforms.canvasSize, [gl.canvas.width, gl.canvas.height])
+    particleProgram.setUniforms({
+        particles: particleTexture,
+        velocityTexture,
+        canvasSize: [gl.canvas.width, gl.canvas.height],
+        numParticles,
+    })
     // assign an index to each particle with an attribute array
 
     const indexBuffer = gl.createBuffer()
@@ -147,18 +146,16 @@ export const solvePoisson = (
 ): TextureFBO => {
     let jacobiInputFBO = inputFBO;
     jacobiProgram.use()
-    gl.uniform1f(jacobiProgram.uniforms.alpha, alpha)
-    gl.uniform1f(jacobiProgram.uniforms.rBeta, rBeta)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, bTexture)
-    gl.uniform1i(jacobiProgram.uniforms.bTexture, 0)
-    gl.uniform2fv(jacobiProgram.uniforms.texelDims, [1.0 / gl.canvas.width, 1.0 / gl.canvas.height])
+    jacobiProgram.setUniforms({
+        alpha,
+        rBeta,
+        bTexture,
+        texelDims: [1.0 / gl.canvas.width, 1.0 / gl.canvas.height],
+    })
 
     // solve for diffusion
     for (let i = 0; i < numIterations; i++) {
-        gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, jacobiInputFBO.texture)
-        gl.uniform1i(jacobiProgram.uniforms.xTexture, 1)
+        jacobiProgram.setTexture("xTexture", jacobiInputFBO.texture, 1)
 
         draw(gl, jacobiFBO.writeFBO)
         jacobiFBO.swap()
