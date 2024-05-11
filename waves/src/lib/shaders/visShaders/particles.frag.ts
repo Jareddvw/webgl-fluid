@@ -5,7 +5,6 @@ precision highp float;
 precision highp sampler2D;
 
 in vec2 texCoord;
-in float indexOut;
 
 uniform sampler2D velocityTexture;
 
@@ -17,7 +16,7 @@ void main() {
     
     // Color the particle based on the velocity.
     float blue = max(-velocity.x, -velocity.y);
-    blue = max(blue, 0.0);
-    fragColor = vec4(abs(velocity.xy), blue, 1.0);
+    blue = max(blue * 2.0, 0.0);
+    fragColor = vec4(min(abs(velocity.xy) * 2.0, 1.0), blue, 1.0);
 }
 `;

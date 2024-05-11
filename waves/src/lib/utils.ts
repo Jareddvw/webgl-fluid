@@ -44,19 +44,17 @@ export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO) => {
         1, -1,
         1, -1,
         1, 1,
+        1, 1,
+        -1, 1,
+        -1, 1,
+        -1, -1,
     ])
     const lineBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.STATIC_DRAW)
-
-    const vertexOrder = new Uint16Array([0, 1, 2, 3])
-    const indexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, vertexOrder, gl.STATIC_DRAW)
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(0)
-
-    gl.drawElements(gl.LINES, 4, gl.UNSIGNED_SHORT, 0)
+    gl.drawArrays(gl.LINES, 0, 4)
 }
 
 export const drawParticles = (
@@ -75,11 +73,6 @@ export const drawParticles = (
     // draw canvas.width * canvas.height number of points
     particleProgram.use()
     const numParticles = gl.canvas.width * gl.canvas.height / 4
-    const indexList = [];
-    for (let i = 0; i < numParticles; i++) {
-        indexList.push(i * 4)
-    }
-    const indices = new Float32Array(indexList)
     particleProgram.setUniforms({
         particles: particleTexture,
         velocityTexture,
@@ -88,11 +81,18 @@ export const drawParticles = (
     })
     // assign an index to each particle with an attribute array
 
+    const indexList = [];
+    for (let i = 0; i < numParticles; i++) {
+        indexList.push(i * 4)
+    }
+    const indices = new Float32Array(indexList)
     const indexBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW)
     gl.enableVertexAttribArray(0)
     gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0)
+
+    
     gl.drawArrays(gl.POINTS, 0, numParticles)
 }
 

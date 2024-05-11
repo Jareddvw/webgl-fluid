@@ -24,7 +24,7 @@ const JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
 
-const ADVECT_PARTICLES = true
+let ADVECT_PARTICLES = false
 let DRAW_PARTICLES = false
 
 type Field = 'velocity' | 'pressure' | 'particles'
@@ -110,8 +110,10 @@ let prev = performance.now()
 const render = (now: number) => {
     if (selectedField.value === 'particles') {
         DRAW_PARTICLES = true
+        ADVECT_PARTICLES = true
     } else {
         DRAW_PARTICLES = false
+        ADVECT_PARTICLES = false
     }
     const diff = now - prev
     const deltaT = diff === 0 ? 0.016 : (now - prev) / 1000
