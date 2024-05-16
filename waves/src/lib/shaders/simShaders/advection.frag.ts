@@ -33,18 +33,16 @@ void main() {
 
     // Get the velocity at the current position, u(x, t)
     vec4 v = texture(velocity, coords);
-    
-    // Get the quantity at the current position, q(x, t)
-    vec4 q = texture(quantity, coords);
 
-    // Combine for q(x - u(x, t) * dt, t)
+    // Combine for x - u(x, t) * dt
     vec2 newPos = coords - v.xy * dt * gridScale;
 
     if (useBilerp) {
+        // return q(x - u(x, t) * dt, t)
         fragColor = bilerp(quantity, newPos);
         return;
     }
     // Without bilerp the advection isn't as smooth but the choppiness looks cool
-    fragColor = texture(quantity, newPos);;
+    fragColor = texture(quantity, newPos);
 }
 `

@@ -42,6 +42,10 @@ export class ShaderProgram {
         }
     }
 
+    getProgram() {
+        return this.program
+    }
+
     use() {
         this.gl.useProgram(this.program)
     }
@@ -65,6 +69,12 @@ export class ShaderProgram {
         for (const [key, value] of Object.entries(uniforms)) {
             if (typeof value === 'number') {
                 this.setFloat(key, value)
+            } else if (typeof value === 'boolean') {
+                if (value) {
+                    this.setFloat(key, 1)
+                } else {
+                    this.setFloat(key, 0)
+                }
             } else if (Array.isArray(value)) {
                 // we only use vec2s
                 this.setVec2(key, value)

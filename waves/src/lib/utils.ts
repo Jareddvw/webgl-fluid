@@ -36,26 +36,67 @@ export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | TextureF
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
 }
 
-/** Draws 4 lines around the whole texture */
-export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO) => {
+/** Draws 'lines' around the border of the canvas, really just thin triangles. */
+export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO | null) => {
+    if (fbo) {
+        fbo.bind()
+    } else {
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    }
+    // 4 thin quads around the border of the canvas
+    const quadVertices = new Float32Array([
+        // top quad
+        -1, 1,
+        -1, 0.99,
+        1, 1,
+        1, 0.99,
+        // right quad
+        1, 1,
+        0.99, 1,
+        1, -1,
+        0.99, -1,
+        // bottom quad
+        -1, -1,
+        -1, -0.99,
+        1, -1,
+        1, -0.99,
+        // left quad
+        -1, 1,
+        -0.99, 1,
+        -1, -1,
+        -0.99, -1,
+    ])
+    const quadBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW)
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
+    gl.enableVertexAttribArray(0)
+    gl.drawArrays(gl.TRIANGLES, 0, 8)
+}
+
+export const drawLine = (
+    gl: WebGL2RenderingContext, 
+    fbo: TextureFBO, 
+    start: [number, number], 
+    end: [number, number]
+) => {
     fbo.bind()
     const lineVertices = new Float32Array([
-        -1, -1,
-        1, -1,
-        1, -1,
-        1, 1,
-        1, 1,
-        -1, 1,
-        -1, 1,
-        -1, -1,
+        ...start,
+        ...end,
     ])
     const lineBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.STATIC_DRAW)
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(0)
-    gl.drawArrays(gl.LINES, 0, 4)
+    gl.drawArrays(gl.LINES, 0, 2)
 }
+
+
+// particle density. Between 0 and 1.
+const particleDensity = 1.0;
 
 export const drawParticles = (
     gl: WebGL2RenderingContext, 
@@ -72,7 +113,7 @@ export const drawParticles = (
     }
     // draw canvas.width * canvas.height number of points
     particleProgram.use()
-    const numParticles = gl.canvas.width * gl.canvas.height / 4
+    const numParticles = gl.canvas.width * gl.canvas.height * particleDensity
     particleProgram.setUniforms({
         particles: particleTexture,
         velocityTexture,
@@ -83,7 +124,7 @@ export const drawParticles = (
 
     const indexList = [];
     for (let i = 0; i < numParticles; i++) {
-        indexList.push(i * 4)
+        indexList.push(i / particleDensity)
     }
     const indices = new Float32Array(indexList)
     const indexBuffer = gl.createBuffer()
@@ -92,7 +133,6 @@ export const drawParticles = (
     gl.enableVertexAttribArray(0)
     gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0)
 
-    
     gl.drawArrays(gl.POINTS, 0, numParticles)
 }
 
@@ -129,6 +169,7 @@ export const colors = {
     purple: [0.6, 0.1, 0.4, 1.0],
     black: [0.0, 0.0, 0.0, 1.0],
     empty: [0.0, 0.0, 0.0, 0.0],
+    white: [1.0, 1.0, 1.0, 1.0],
 }
 
 /**

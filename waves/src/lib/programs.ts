@@ -14,6 +14,7 @@ import { velocityToColorFrag } from "./shaders/simShaders/velocityToColor.frag"
 import { fillColorFrag } from "./shaders/testShaders/fillColor.frag"
 import { textureDisplayVert } from "./shaders/testShaders/textureDisplay.vert"
 import { textureDisplayFrag } from "./shaders/testShaders/texureDisplay.frag"
+import { fadeFrag } from "./shaders/visShaders/fade.frag"
 import { particlesFrag } from "./shaders/visShaders/particles.frag"
 import { particlesVert } from "./shaders/visShaders/particles.vert"
 import { writeParticlesFrag } from "./shaders/visShaders/writeParticles.frag"
@@ -65,6 +66,9 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
     const advectParticleFragShader = new Shader(gl, gl.FRAGMENT_SHADER, advectParticleFrag)
     const advectParticleProgram = new ShaderProgram(gl, [simpleVertShader, advectParticleFragShader])
 
+    const fadeFragShader = new Shader(gl, gl.FRAGMENT_SHADER, fadeFrag)
+    const fadeProgram = new ShaderProgram(gl, [passThrough, fadeFragShader])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -90,11 +94,15 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
         boundaryProgram,
         // forward advection of particles
         advectParticleProgram,
+
+        // fade the particles
+        fadeProgram,
     }
 }
 
 export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
     const particlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const prevParticlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
@@ -104,5 +112,6 @@ export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
         pressureFBO,
         divergenceFBO,
         velocityFBO,
+        prevParticlesFBO,
     }
 }

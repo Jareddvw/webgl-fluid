@@ -2,8 +2,9 @@
  * The main simulation logic.
  */
 
+import { TextureFBO } from './lib/classes/TextureFBO'
 import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawParticles, getFPS } from './lib/utils'
+import { colors, draw, drawLine, drawLines, drawParticles, getFPS } from './lib/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -20,16 +21,17 @@ if (!gl) {
     throw new Error('WebGL2 not supported')
 }
 const gridScale = 0.8
-const JACOBI_ITERATIONS = 30
+let JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
 
 let ADVECT_PARTICLES = false
 let DRAW_PARTICLES = false
+let DRAW_PARTICLE_LINES = false
 
 type Field = 'velocity' | 'pressure' | 'particles'
 const selectedField = document.getElementById('field') as HTMLSelectElement
-
+const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
 
 let mouseDown = false
@@ -57,7 +59,7 @@ window.addEventListener('mousemove', (e) => {
         lastMousePos =  [x, y]
         impulsePosition = [x, y]
         impulseMagnitude = 1
-        impulseRadius = .0002
+        impulseRadius = .0001
     }
 })
 window.addEventListener('mouseup', () => {
@@ -81,7 +83,9 @@ const {
     divergenceProgram,
     gradientSubtractionProgram,
     boundaryProgram,
-    advectParticleProgram
+    copyProgram,
+    advectParticleProgram,
+    fadeProgram,
 } = makePrograms(gl)
 
 const {
@@ -89,6 +93,7 @@ const {
     divergenceFBO,
     pressureFBO,
     velocityFBO,
+    prevParticlesFBO
 } = makeFBOs(gl)
 
 // Make a fullscreen black quad texture as a starting point
@@ -102,12 +107,38 @@ writeParticleProgram.use()
 draw(gl, particlesFBO.writeFBO)
 particlesFBO.swap()
 
-let inputFBO = velocityFBO.readFBO
 let prev = performance.now()
+
+const applyVelocityBoundary = (texelDims: [number, number]) => {
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: -1,
+        x: velocityFBO.readFBO.texture,
+        texelDims,
+    })
+    draw(gl, velocityFBO.writeFBO)
+    velocityFBO.swap()
+}
+
+const applyPressureBoundary = (texelDims: [number, number]) => {
+    boundaryProgram.use()
+    boundaryProgram.setUniforms({
+        scale: 1,
+        x: pressureFBO.readFBO.texture,
+        texelDims
+    })
+    draw(gl, pressureFBO.writeFBO)
+    pressureFBO.swap()
+}
 
 // TODO: draw lines in the direction of the velocity field.
 
 const render = (now: number) => {
+    if (particleLinesCheckbox.checked) {
+        DRAW_PARTICLE_LINES = true
+    } else {
+        DRAW_PARTICLE_LINES = false
+    }
     if (selectedField.value === 'particles') {
         DRAW_PARTICLES = true
         ADVECT_PARTICLES = true
@@ -116,9 +147,9 @@ const render = (now: number) => {
         ADVECT_PARTICLES = false
     }
     const diff = now - prev
-    const deltaT = diff === 0 ? 0.016 : (now - prev) / 1000
+    const deltaT = diff === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
     prev = now
-    const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height]
+    const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height] as [number, number]
 
     // External force shader
     externalForceProgram.use()
@@ -132,7 +163,8 @@ const render = (now: number) => {
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
-    inputFBO = velocityFBO.readFBO
+
+    applyVelocityBoundary(texelDims)
     
     // Advection shader
     advectionProgram.use()
@@ -141,8 +173,8 @@ const render = (now: number) => {
         gridScale,
         texelDims,
         useBilerp: bilerpCheckbox.checked ? 1 : 0,
-        velocity: inputFBO.texture,
-        quantity: inputFBO.texture,
+        velocity: velocityFBO.readFBO.texture,
+        quantity: velocityFBO.readFBO.texture,
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
@@ -160,26 +192,7 @@ const render = (now: number) => {
         particlesFBO.swap()
     }
 
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: -1,
-        x: velocityFBO.readFBO.texture,
-        texelDims,
-        threshold: 0.001,
-    })
-    draw(gl, velocityFBO.writeFBO)
-    velocityFBO.swap()
-
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: 1,
-        x: pressureFBO.readFBO.texture,
-        texelDims
-    })
-    draw(gl, pressureFBO.writeFBO)
-    pressureFBO.swap()
-
-    
+    applyVelocityBoundary(texelDims)
 
     // Solve for viscous diffusion with jacobi method
     if (DIFFUSE) {
@@ -196,13 +209,13 @@ const render = (now: number) => {
             draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
         }
-        inputFBO = velocityFBO.readFBO
+        applyVelocityBoundary(texelDims)
     }
 
     // get divergence of velocity field
     divergenceProgram.use()
     divergenceProgram.setUniforms({
-        velocity: inputFBO.texture,
+        velocity: velocityFBO.readFBO.texture,
         gridScale,
         texelDims,
     })
@@ -223,25 +236,53 @@ const render = (now: number) => {
         pressureFBO.swap()
     }
 
+    applyPressureBoundary(texelDims)
+
     // u = w - grad(P)
     gradientSubtractionProgram.use()
     gradientSubtractionProgram.setUniforms({
         pressure: pressureFBO.readFBO.texture,
-        divergentVelocity: inputFBO.texture,
+        divergentVelocity: velocityFBO.readFBO.texture,
         halfrdx: 0.5 / gridScale,
         texelDims,
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
+    applyVelocityBoundary(texelDims)
+
     if (DRAW_PARTICLES) {
-        drawParticles(
-            gl,
-            particlesFBO.readFBO.texture, 
-            velocityFBO.readFBO.texture,
-            particleProgram,
-            null
-        )
+        if (DRAW_PARTICLE_LINES) {
+            fadeProgram.use()
+            fadeProgram.setTexture('tex', prevParticlesFBO.readFBO.texture, 0)
+            fadeProgram.setFloat('fadeFactor', 0.0001)
+            draw(gl, prevParticlesFBO.writeFBO)
+            prevParticlesFBO.swap()
+
+            drawParticles(
+                gl,
+                particlesFBO.readFBO.texture,
+                velocityFBO.readFBO.texture,
+                particleProgram,
+                prevParticlesFBO.writeFBO,
+            )
+            prevParticlesFBO.swap()
+            copyProgram.use()
+            copyProgram.setTexture('tex', prevParticlesFBO.readFBO.texture, 0)
+            draw(gl, null)
+        } else {
+            // fillColorProgram.use()
+            // gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
+            // draw(gl, null)
+            drawParticles(
+                gl,
+                particlesFBO.readFBO.texture, 
+                velocityFBO.readFBO.texture,
+                particleProgram,
+                null,
+            )
+        }
+
     } else {
         colorVelProgram.use()
         switch (selectedField.value as Field) {
@@ -255,7 +296,15 @@ const render = (now: number) => {
         draw(gl, null)
     }
     
-    fpsDiv.innerText = `FPS: ${getFPS().toPrecision(3)}`
+    const fps = getFPS()
+    fpsDiv.innerText = `FPS: ${fps.toPrecision(3)}, iterations: ${JACOBI_ITERATIONS}`
+    if (fps < 60) {
+        JACOBI_ITERATIONS = 20
+    } else if (fps < 70) {
+        JACOBI_ITERATIONS = 25
+    } else {
+        JACOBI_ITERATIONS = 30
+    }
     requestAnimationFrame(render)
 }
 
