@@ -265,7 +265,7 @@ const render = (now: number) => {
                 particleProgram,
                 3.0,
                 prevParticlesFBO.writeFBO,
-                0.01
+                0.1
             )
             copyProgram.use()
             copyProgram.setTexture('tex', prevParticlesFBO.writeFBO.texture, 0)
@@ -274,7 +274,7 @@ const render = (now: number) => {
             fadeProgram.use()
             fadeProgram.setUniforms({
                 tex: tempTex.texture,
-                fadeFactor: 0.99,
+                fadeFactor: 0.90,
             })
             draw(gl, prevParticlesFBO.writeFBO)
         } else {
