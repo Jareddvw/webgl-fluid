@@ -13,10 +13,10 @@ uniform float fadeFactor;
 out vec4 color;
 
 void main() {
-    // color = texture(tex, fragTexCoord) * (1.0 - fadeFactor);
-    // if (color.x < 0.1 && color.y < 0.1 && color.z < 0.1) {
+    color = vec4(texture(tex, fragTexCoord).xyz * fadeFactor, 1.0);
+    // if (color.x < 0.01 && color.y < 0.01 && color.z < 0.01) {
     //     color = vec4(0.0, 0.0, 0.0, 0.0);
     // }
-    color = vec4(1.0, 1.0, 1.0, 1.0);
+    // color = vec4(1.0, 1.0, 1.0, 1.0);
 }
 `;

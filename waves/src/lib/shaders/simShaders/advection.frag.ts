@@ -10,6 +10,7 @@ uniform float dt;
 uniform float gridScale; // Grid scale
 uniform vec2 texelDims; // 1 / texture dimensions
 uniform bool useBilerp;
+float dissipation;
 
 out vec4 fragColor;
 
@@ -39,10 +40,10 @@ void main() {
 
     if (useBilerp) {
         // return q(x - u(x, t) * dt, t)
-        fragColor = bilerp(quantity, newPos);
+        fragColor = bilerp(quantity, newPos) * (1.0 - dissipation);
         return;
     }
     // Without bilerp the advection isn't as smooth but the choppiness looks cool
-    fragColor = texture(quantity, newPos);
+    fragColor = texture(quantity, newPos) * (1.0 - dissipation);
 }
 `

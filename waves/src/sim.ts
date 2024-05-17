@@ -24,6 +24,7 @@ const gridScale = 0.8
 let JACOBI_ITERATIONS = 30
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
+const ADVECTION_DISSIPATION = 0.1
 
 let ADVECT_PARTICLES = false
 let DRAW_PARTICLES = false
@@ -95,6 +96,8 @@ const {
     velocityFBO,
     prevParticlesFBO
 } = makeFBOs(gl)
+
+const tempTex = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
 
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
@@ -175,6 +178,7 @@ const render = (now: number) => {
         useBilerp: bilerpCheckbox.checked ? 1 : 0,
         velocity: velocityFBO.readFBO.texture,
         quantity: velocityFBO.readFBO.texture,
+        dissipation: ADVECTION_DISSIPATION,
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
@@ -251,25 +255,28 @@ const render = (now: number) => {
 
     applyVelocityBoundary(texelDims)
 
+    // visualization
     if (DRAW_PARTICLES) {
         if (DRAW_PARTICLE_LINES) {
-            fadeProgram.use()
-            fadeProgram.setTexture('tex', prevParticlesFBO.readFBO.texture, 0)
-            fadeProgram.setFloat('fadeFactor', 0.0001)
-            draw(gl, prevParticlesFBO.writeFBO)
-            prevParticlesFBO.swap()
-
             drawParticles(
                 gl,
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
                 particleProgram,
+                3.0,
                 prevParticlesFBO.writeFBO,
+                0.01
             )
-            prevParticlesFBO.swap()
             copyProgram.use()
-            copyProgram.setTexture('tex', prevParticlesFBO.readFBO.texture, 0)
+            copyProgram.setTexture('tex', prevParticlesFBO.writeFBO.texture, 0)
             draw(gl, null)
+            draw(gl, tempTex)
+            fadeProgram.use()
+            fadeProgram.setUniforms({
+                tex: tempTex.texture,
+                fadeFactor: 0.99,
+            })
+            draw(gl, prevParticlesFBO.writeFBO)
         } else {
             // fillColorProgram.use()
             // gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
@@ -279,7 +286,9 @@ const render = (now: number) => {
                 particlesFBO.readFBO.texture, 
                 velocityFBO.readFBO.texture,
                 particleProgram,
+                0.0,
                 null,
+                1.0
             )
         }
 
@@ -298,7 +307,9 @@ const render = (now: number) => {
     
     const fps = getFPS()
     fpsDiv.innerText = `FPS: ${fps.toPrecision(3)}, iterations: ${JACOBI_ITERATIONS}`
-    if (fps < 60) {
+    if (fps < 50) {
+        JACOBI_ITERATIONS = 15
+    } else if (fps < 60) {
         JACOBI_ITERATIONS = 20
     } else if (fps < 70) {
         JACOBI_ITERATIONS = 25

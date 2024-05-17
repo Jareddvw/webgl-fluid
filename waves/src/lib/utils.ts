@@ -94,16 +94,15 @@ export const drawLine = (
     gl.drawArrays(gl.LINES, 0, 2)
 }
 
-
-// particle density. Between 0 and 1.
-const particleDensity = 1.0;
-
 export const drawParticles = (
     gl: WebGL2RenderingContext, 
     particleTexture: WebGLTexture,
     velocityTexture: WebGLTexture,
     particleProgram: ShaderProgram,
+    colorMode: number,
     fbo: RenderBufferFBO | TextureFBO | null,
+    // particle density, between 0 and 1
+    particleDensity = 0.1,
 ) => {
     if (fbo) {
         fbo.bind()
@@ -119,6 +118,7 @@ export const drawParticles = (
         velocityTexture,
         canvasSize: [gl.canvas.width, gl.canvas.height],
         numParticles,
+        colorMode,
     })
     // assign an index to each particle with an attribute array
 

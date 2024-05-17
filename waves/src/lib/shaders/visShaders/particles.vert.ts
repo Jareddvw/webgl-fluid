@@ -2,7 +2,7 @@
 // we have an input texture with the particle positions.
 export const particlesVert = /* glsl */ `#version 300 es
 
-precision mediump float;
+precision highp float;
 
 layout(location=0) in float index;
 
