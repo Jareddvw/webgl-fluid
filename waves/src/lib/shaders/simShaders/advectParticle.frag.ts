@@ -32,7 +32,7 @@ void main() {
     // Combine for q(x + u(x, t) * dt, t)
     vec2 newPos = q.xy + v.xy * dt * gridScale;
 
-    if (random((newPos + texCoord.xy + v + q) * dt) < 0.000001) {
+    if (random((newPos + texCoord.xy + v + q) * dt) < 0.00000001) {
         // Reset the particle to its original position
         newPos = texCoord.xy;
     }

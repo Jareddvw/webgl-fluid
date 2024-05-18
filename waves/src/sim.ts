@@ -4,7 +4,7 @@
 
 import { TextureFBO } from './lib/classes/TextureFBO'
 import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawLine, drawLines, drawParticles, getFPS } from './lib/utils'
+import { colors, draw, drawParticles, getFPS } from './lib/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -26,14 +26,66 @@ const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
 const ADVECTION_DISSIPATION = 0.1
 
-let ADVECT_PARTICLES = false
-let DRAW_PARTICLES = false
-let DRAW_PARTICLE_LINES = false
-
 type Field = 'velocity' | 'pressure' | 'particles'
 const selectedField = document.getElementById('field') as HTMLSelectElement
 const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
+const pauseCheckbox = document.getElementById('pause') as HTMLInputElement
+const particleDensityInput = document.getElementById('particleDensity') as HTMLInputElement
+const particleTrailSizeInput = document.getElementById('particleTrailSize') as HTMLInputElement
+const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
+const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
+
+let DRAW_PARTICLES = selectedField.value === 'particles'
+let DRAW_PARTICLE_LINES = particleLinesCheckbox.checked
+let PAUSED = pauseCheckbox.checked
+let particleDensity = parseFloat(particleDensityInput.value) / 100.0
+let particleTrailSize = parseFloat(particleTrailSizeInput.value) / 100.0
+let pointSize = Math.max(1, Math.min(5, parseFloat(pointSizeInput.value)))
+let FIELD = selectedField.value as Field
+let colorMode = Math.max(1, Math.min(5, parseInt(colorModeInput.value, 10)))
+
+particleDensityInput.addEventListener('change', () => {
+    particleDensity = parseFloat(particleDensityInput.value) / 100.0
+})
+particleTrailSizeInput.addEventListener('change', () => {
+    particleTrailSize = parseFloat(particleTrailSizeInput.value) / 100.0
+})
+pointSizeInput.addEventListener('change', () => {
+    // clamp point size to [1, 5]
+    pointSize = Math.max(1, Math.min(5, parseFloat(pointSizeInput.value)))
+})
+colorModeInput.addEventListener('change', () => {
+    colorMode = Math.max(1, Math.min(5, parseInt(colorModeInput.value, 10)))
+})
+pauseCheckbox.addEventListener('change', () => {
+    if (pauseCheckbox.checked) {
+        PAUSED = true
+    } else {
+        PAUSED = false
+        render(performance.now())
+    }
+})
+selectedField.addEventListener('change', () => {
+    if (selectedField.value === 'particles') {
+        DRAW_PARTICLES = true
+    } else {
+        DRAW_PARTICLES = false
+    }
+    if (selectedField.value === 'velocity') {
+        FIELD = 'velocity'
+    } else if (selectedField.value === 'pressure') {
+        FIELD = 'pressure'
+    }
+    render(performance.now())
+})
+particleLinesCheckbox.addEventListener('change', () => {
+    if (particleLinesCheckbox.checked) {
+        DRAW_PARTICLE_LINES = true
+    } else {
+        DRAW_PARTICLE_LINES = false
+    }
+})
 
 let mouseDown = false
 let impulseDirection = [0, 0]
@@ -41,13 +93,13 @@ let lastMousePos = [0, 0]
 let impulsePosition = [0, 0]
 let impulseMagnitude = 0
 let impulseRadius = 0
-window.addEventListener('mousedown', (e) => {
+canvas.addEventListener('mousedown', (e) => {
     const x = e.clientX / gl.canvas.width
     const y = 1 - e.clientY / gl.canvas.height
     mouseDown = true
     lastMousePos = [x, y]
 })
-window.addEventListener('mousemove', (e) => {
+canvas.addEventListener('mousemove', (e) => {
     if (mouseDown) {
         const x = e.clientX / gl.canvas.width
         const y = 1 - e.clientY / gl.canvas.height
@@ -63,7 +115,7 @@ window.addEventListener('mousemove', (e) => {
         impulseRadius = .0001
     }
 })
-window.addEventListener('mouseup', () => {
+canvas.addEventListener('mouseup', () => {
     mouseDown = false
     impulseMagnitude = 0
     impulseRadius = 0
@@ -94,9 +146,9 @@ const {
     divergenceFBO,
     pressureFBO,
     velocityFBO,
-    prevParticlesFBO
 } = makeFBOs(gl)
 
+const prevParticlesFBO = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
 const tempTex = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
 
 // Make a fullscreen black quad texture as a starting point
@@ -137,24 +189,12 @@ const applyPressureBoundary = (texelDims: [number, number]) => {
 // TODO: draw lines in the direction of the velocity field.
 
 const render = (now: number) => {
-    if (particleLinesCheckbox.checked) {
-        DRAW_PARTICLE_LINES = true
-    } else {
-        DRAW_PARTICLE_LINES = false
-    }
-    if (selectedField.value === 'particles') {
-        DRAW_PARTICLES = true
-        ADVECT_PARTICLES = true
-    } else {
-        DRAW_PARTICLES = false
-        ADVECT_PARTICLES = false
-    }
     const diff = now - prev
     const deltaT = diff === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
     prev = now
     const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height] as [number, number]
 
-    // External force shader
+    // External force
     externalForceProgram.use()
     externalForceProgram.setUniforms({
         impulseDirection,
@@ -169,7 +209,7 @@ const render = (now: number) => {
 
     applyVelocityBoundary(texelDims)
     
-    // Advection shader
+    // Advection
     advectionProgram.use()
     advectionProgram.setUniforms({
         dt: deltaT,
@@ -183,7 +223,8 @@ const render = (now: number) => {
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
-    if (ADVECT_PARTICLES) {
+    if (DRAW_PARTICLES) {
+        // use forward advection for particles
         advectParticleProgram.use()
         advectParticleProgram.setUniforms({
             dt: deltaT,
@@ -198,8 +239,8 @@ const render = (now: number) => {
 
     applyVelocityBoundary(texelDims)
 
-    // Solve for viscous diffusion with jacobi method
     if (DIFFUSE) {
+        // viscous diffusion with jacobi method
         const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * deltaT)
         jacobiProgram.use()
         jacobiProgram.setUniforms({
@@ -226,7 +267,7 @@ const render = (now: number) => {
     draw(gl, divergenceFBO.writeFBO)
     divergenceFBO.swap()
 
-    // solve for pressure
+    // poisson-pressure, laplacian(P) = div(w)
     jacobiProgram.use()
     jacobiProgram.setUniforms({
         alpha: -gridScale * gridScale,
@@ -263,38 +304,36 @@ const render = (now: number) => {
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
                 particleProgram,
-                3.0,
-                prevParticlesFBO.writeFBO,
-                0.1
+                colorMode,
+                prevParticlesFBO,
+                particleDensity,
+                pointSize
             )
             copyProgram.use()
-            copyProgram.setTexture('tex', prevParticlesFBO.writeFBO.texture, 0)
+            copyProgram.setTexture('tex', prevParticlesFBO.texture, 0)
             draw(gl, null)
             draw(gl, tempTex)
             fadeProgram.use()
             fadeProgram.setUniforms({
                 tex: tempTex.texture,
-                fadeFactor: 0.90,
+                fadeFactor: particleTrailSize,
             })
-            draw(gl, prevParticlesFBO.writeFBO)
+            draw(gl, prevParticlesFBO)
         } else {
-            // fillColorProgram.use()
-            // gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
-            // draw(gl, null)
             drawParticles(
                 gl,
                 particlesFBO.readFBO.texture, 
                 velocityFBO.readFBO.texture,
                 particleProgram,
-                0.0,
+                colorMode,
                 null,
-                1.0
+                particleDensity,
+                pointSize
             )
         }
-
     } else {
         colorVelProgram.use()
-        switch (selectedField.value as Field) {
+        switch (FIELD) {
             case 'velocity':
                 colorVelProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)
                 break;
@@ -315,6 +354,9 @@ const render = (now: number) => {
         JACOBI_ITERATIONS = 25
     } else {
         JACOBI_ITERATIONS = 30
+    }
+    if (PAUSED) {
+        return
     }
     requestAnimationFrame(render)
 }

@@ -103,6 +103,8 @@ export const drawParticles = (
     fbo: RenderBufferFBO | TextureFBO | null,
     // particle density, between 0 and 1
     particleDensity = 0.1,
+    // point size, between 1 and 10
+    pointSize = 1,
 ) => {
     if (fbo) {
         fbo.bind()
@@ -119,6 +121,7 @@ export const drawParticles = (
         canvasSize: [gl.canvas.width, gl.canvas.height],
         numParticles,
         colorMode,
+        pointSize,
     })
     // assign an index to each particle with an attribute array
 

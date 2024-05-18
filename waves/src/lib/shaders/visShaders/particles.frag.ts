@@ -50,6 +50,15 @@ void main() {
         vec2 initialPos = decode(indexOut, canvasSize);
         vec2 gb = abs(initialPos.xy);
         fragColor = vec4(0.0, gb, 1.0);
+    } else if (colorMode == 4.0) {
+        // all yellow
+        fragColor = vec4(1.0, 1.0, 0.0, 1.0);
+    } else if (colorMode == 5.0) {
+        // blue, green, and yellow
+        vec2 initialPos = decode(indexOut, canvasSize);
+        vec2 gb = abs(initialPos.xy);
+        float r = 1.0 - gb.x;
+        fragColor = vec4(r, gb, 1.0);
     }
 }
 `;
