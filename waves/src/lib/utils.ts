@@ -94,6 +94,12 @@ export const drawLine = (
     gl.drawArrays(gl.LINES, 0, 2)
 }
 
+let cachedIndexBufferInfo = {
+    numParticles: 0,
+    particleDensity: 0,
+    indexBuffer: new Float32Array(),
+}
+
 export const drawParticles = (
     gl: WebGL2RenderingContext, 
     particleTexture: WebGLTexture,
@@ -123,16 +129,29 @@ export const drawParticles = (
         colorMode,
         pointSize,
     })
-    // assign an index to each particle with an attribute array
-
-    const indexList = [];
-    for (let i = 0; i < numParticles; i++) {
-        indexList.push(i / particleDensity)
+    
+    let indexList: number[] = []
+    if (
+        numParticles !== cachedIndexBufferInfo.numParticles || 
+        particleDensity !== cachedIndexBufferInfo.particleDensity
+    ) {
+        // only need to create the index buffer if the number/density of particles changed
+        for (let i = 0; i < numParticles; i += 1) {
+            indexList.push(i / particleDensity)
+        }
+        const indexBuffer = gl.createBuffer()
+        const indices = new Float32Array(indexList)
+        gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+        cachedIndexBufferInfo = {
+            numParticles,
+            particleDensity,
+            indexBuffer: indices,
+        }
+    } else {
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+        gl.bufferData(gl.ARRAY_BUFFER, cachedIndexBufferInfo.indexBuffer, gl.STATIC_DRAW)
     }
-    const indices = new Float32Array(indexList)
-    const indexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW)
     gl.enableVertexAttribArray(0)
     gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0)
 
@@ -198,7 +217,7 @@ export const solvePoisson = (
     })
 
     // solve for diffusion
-    for (let i = 0; i < numIterations; i++) {
+    for (let i = 0; i < numIterations; i += 1) {
         jacobiProgram.setTexture("xTexture", jacobiInputFBO.texture, 1)
 
         draw(gl, jacobiFBO.writeFBO)

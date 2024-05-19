@@ -69,6 +69,9 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
     const fadeFragShader = new Shader(gl, gl.FRAGMENT_SHADER, fadeFrag)
     const fadeProgram = new ShaderProgram(gl, [passThrough, fadeFragShader])
 
+    const redBlackJacobiFragShader = new Shader(gl, gl.FRAGMENT_SHADER, jacobiFrag)
+    const redBlackJacobiProgram = new ShaderProgram(gl, [simpleVertShader, redBlackJacobiFragShader])
+
     return {
         // fills the screen with a color
         fillColorProgram,
@@ -86,6 +89,8 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
         particleProgram,
         // jacobi iteration
         jacobiProgram,
+        // red-black jacobi iteration
+        redBlackJacobiProgram,
         // divergence of w (divergent velocity field)
         divergenceProgram,
         // calculate grad(P), subtract from w
@@ -94,7 +99,6 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
         boundaryProgram,
         // forward advection of particles
         advectParticleProgram,
-
         // fade the particles
         fadeProgram,
     }
@@ -102,7 +106,6 @@ export const makePrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
 
 export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
     const particlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
-    const prevParticlesFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
@@ -112,6 +115,5 @@ export const makeFBOs = (gl: WebGL2RenderingContext): FBORecord => {
         pressureFBO,
         divergenceFBO,
         velocityFBO,
-        prevParticlesFBO,
     }
 }

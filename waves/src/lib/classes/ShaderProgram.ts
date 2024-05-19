@@ -25,10 +25,10 @@ export class ShaderProgram {
         this.fillUniforms()
     }
 
-    /** Get all the uniforms from the program and fill our map with { name: location } */
+    /** Get all the uniforms from the program and fill its map with { name: location } */
     fillUniforms() {
         const count = this.gl.getProgramParameter(this.program, this.gl.ACTIVE_UNIFORMS)
-        for (let i = 0; i < count; i++) {
+        for (let i = 0; i < count; i += 1) {
             const activeUniform = this.gl.getActiveUniform(this.program, i)
             if (!activeUniform) {
                 throw new Error('Error getting uniform info')
@@ -54,6 +54,14 @@ export class ShaderProgram {
         this.gl.uniform1f(this.uniforms[name], value)
     }
 
+    setBool(name: string, value: boolean) {
+        if (value) {
+            this.setFloat(name, 1)
+        } else {
+            this.setFloat(name, 0)
+        }
+    }
+
     setVec2(name: string, value: number[]) {
         this.gl.uniform2fv(this.uniforms[name], value)
     }
@@ -70,11 +78,7 @@ export class ShaderProgram {
             if (typeof value === 'number') {
                 this.setFloat(key, value)
             } else if (typeof value === 'boolean') {
-                if (value) {
-                    this.setFloat(key, 1)
-                } else {
-                    this.setFloat(key, 0)
-                }
+                this.setBool(key, value)
             } else if (Array.isArray(value)) {
                 // we only use vec2s
                 this.setVec2(key, value)

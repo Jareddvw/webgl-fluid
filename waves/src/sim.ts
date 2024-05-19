@@ -67,17 +67,10 @@ pauseCheckbox.addEventListener('change', () => {
     }
 })
 selectedField.addEventListener('change', () => {
-    if (selectedField.value === 'particles') {
-        DRAW_PARTICLES = true
-    } else {
-        DRAW_PARTICLES = false
+    FIELD = selectedField.value as Field
+    if (PAUSED) {
+        render(performance.now())
     }
-    if (selectedField.value === 'velocity') {
-        FIELD = 'velocity'
-    } else if (selectedField.value === 'pressure') {
-        FIELD = 'pressure'
-    }
-    render(performance.now())
 })
 particleLinesCheckbox.addEventListener('change', () => {
     if (particleLinesCheckbox.checked) {
@@ -133,6 +126,7 @@ const {
     writeParticleProgram,
     particleProgram,
     jacobiProgram,
+    redBlackJacobiProgram,
     divergenceProgram,
     gradientSubtractionProgram,
     boundaryProgram,
@@ -223,7 +217,7 @@ const render = (now: number) => {
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
-    if (DRAW_PARTICLES) {
+    if (FIELD === 'particles') {
         // use forward advection for particles
         advectParticleProgram.use()
         advectParticleProgram.setUniforms({
@@ -249,7 +243,7 @@ const render = (now: number) => {
             texelDims,
             bTexture: velocityFBO.readFBO.texture,
         })
-        for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+        for (let i = 0; i < JACOBI_ITERATIONS; i += 1) {
             jacobiProgram.setTexture('xTexture', velocityFBO.readFBO.texture, 1)
             draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
@@ -275,10 +269,13 @@ const render = (now: number) => {
         texelDims,
         bTexture: divergenceFBO.readFBO.texture,
     })
-    for (let i = 0; i < JACOBI_ITERATIONS; i++) {
+    // let fillRedCells = true
+    for (let i = 0; i < JACOBI_ITERATIONS; i += 1) {
         jacobiProgram.setTexture('xTexture', pressureFBO.readFBO.texture, 1)
+        // redBlackJacobiProgram.setBool('fillRed', fillRedCells)
         draw(gl, pressureFBO.writeFBO)
         pressureFBO.swap()
+        // fillRedCells = !fillRedCells
     }
 
     applyPressureBoundary(texelDims)
@@ -297,7 +294,8 @@ const render = (now: number) => {
     applyVelocityBoundary(texelDims)
 
     // visualization
-    if (DRAW_PARTICLES) {
+    if (FIELD === 'particles') {
+        console.log('pointSize', pointSize)
         if (DRAW_PARTICLE_LINES) {
             drawParticles(
                 gl,
@@ -344,17 +342,17 @@ const render = (now: number) => {
         draw(gl, null)
     }
     
-    const fps = getFPS()
-    fpsDiv.innerText = `FPS: ${fps.toPrecision(3)}, iterations: ${JACOBI_ITERATIONS}`
-    if (fps < 50) {
-        JACOBI_ITERATIONS = 15
-    } else if (fps < 60) {
-        JACOBI_ITERATIONS = 20
-    } else if (fps < 70) {
-        JACOBI_ITERATIONS = 25
-    } else {
-        JACOBI_ITERATIONS = 30
-    }
+    // const fps = getFPS()
+    // fpsDiv.innerText = `FPS: ${fps.toPrecision(3)}, iterations: ${JACOBI_ITERATIONS}`
+    // if (fps < 50) {
+    //     JACOBI_ITERATIONS = 15
+    // } else if (fps < 60) {
+    //     JACOBI_ITERATIONS = 20
+    // } else if (fps < 70) {
+    //     JACOBI_ITERATIONS = 25
+    // } else {
+    //     JACOBI_ITERATIONS = 30
+    // }
     if (PAUSED) {
         return
     }
