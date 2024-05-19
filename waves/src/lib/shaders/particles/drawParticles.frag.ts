@@ -1,6 +1,8 @@
-// takes a particle position and draws it on the screen, 
-// uses the velocity texture to change its color
-export const particlesFrag = /* glsl */ `#version 300 es
+/**
+ * Takes a particle index, draws it based on its position in the texture
+ * or its initial position, colors it based on the colorMode.
+ */
+export const drawParticleFrag = /* glsl */ `#version 300 es
 precision highp float;
 precision highp sampler2D;
 

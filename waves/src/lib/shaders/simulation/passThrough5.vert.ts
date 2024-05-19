@@ -3,7 +3,7 @@
  * position and neighbors to the fragment shader.
  * */
 
-export const simpleVert = /*glsl*/ `#version 300 es
+export const passThroughWithNeightborsVert = /*glsl*/ `#version 300 es
 
 precision highp float;
 

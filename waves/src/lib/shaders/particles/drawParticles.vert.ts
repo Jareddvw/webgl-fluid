@@ -1,6 +1,8 @@
-// A shader that transforms particles to new positions from a texture.
-// we have an input texture with the particle positions.
-export const particlesVert = /* glsl */ `#version 300 es
+/**
+ * Vertex shader which transforms the point given by the particle index
+ * to a position encoded in the particle texture.
+ */
+export const drawParticlesVert = /* glsl */ `#version 300 es
 
 precision highp float;
 

@@ -1,7 +1,6 @@
-import { DoubleFBO } from "./classes/DoubleFBO"
-import { RenderBufferFBO } from "./classes/RenderBufferFBO"
-import { ShaderProgram } from "./classes/ShaderProgram"
-import { TextureFBO } from "./classes/TextureFBO"
+import { DoubleFBO } from "../classes/DoubleFBO"
+import { ShaderProgram } from "../classes/ShaderProgram"
+import { FBO } from "../classes/FBO"
 
 /**
  * Draws a full-screen quad to the given FBO,
@@ -9,7 +8,7 @@ import { TextureFBO } from "./classes/TextureFBO"
  * 
  * @param fbo The FBO to draw to, or null to draw to the screen.
  */
-export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | TextureFBO | null) => {
+export const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
     if (fbo) {
         fbo.bind()
     } else {
@@ -37,7 +36,7 @@ export const draw = (gl: WebGL2RenderingContext, fbo: RenderBufferFBO | TextureF
 }
 
 /** Draws 'lines' around the border of the canvas, really just thin triangles. */
-export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO | null) => {
+export const drawLines = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
     if (fbo) {
         fbo.bind()
     } else {
@@ -77,7 +76,7 @@ export const drawLines = (gl: WebGL2RenderingContext, fbo: TextureFBO | null) =>
 
 export const drawLine = (
     gl: WebGL2RenderingContext, 
-    fbo: TextureFBO, 
+    fbo: FBO, 
     start: [number, number], 
     end: [number, number]
 ) => {
@@ -106,7 +105,7 @@ export const drawParticles = (
     velocityTexture: WebGLTexture,
     particleProgram: ShaderProgram,
     colorMode: number,
-    fbo: RenderBufferFBO | TextureFBO | null,
+    fbo: FBO | null,
     // particle density, between 0 and 1
     particleDensity = 0.1,
     // point size, between 1 and 10
@@ -158,7 +157,7 @@ export const drawParticles = (
     gl.drawArrays(gl.POINTS, 0, numParticles)
 }
 
-export const maybeResize = (canvas: HTMLCanvasElement, fbos: (DoubleFBO | TextureFBO)[]) => {
+export const maybeResize = (canvas: HTMLCanvasElement, fbos: (DoubleFBO | FBO)[]) => {
     if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
         canvas.width = canvas.clientWidth
         canvas.height = canvas.clientHeight
@@ -201,12 +200,12 @@ export const solvePoisson = (
     gl: WebGL2RenderingContext,
     jacobiProgram: ShaderProgram,
     jacobiFBO: DoubleFBO,
-    inputFBO: TextureFBO,
+    inputFBO: FBO,
     bTexture: WebGLTexture,
     alpha: number,
     rBeta: number,
     numIterations: number,
-): TextureFBO => {
+): FBO => {
     let jacobiInputFBO = inputFBO;
     jacobiProgram.use()
     jacobiProgram.setUniforms({

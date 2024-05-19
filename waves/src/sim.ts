@@ -1,10 +1,9 @@
 /**
  * The main simulation logic.
  */
-
-import { TextureFBO } from './lib/classes/TextureFBO'
-import { makeFBOs, makePrograms } from './lib/programs'
-import { colors, draw, drawParticles, getFPS } from './lib/utils'
+import { FBO } from './lib/classes/FBO'
+import { getFBOs, getPrograms } from './lib/utils/programs'
+import { colors, draw, drawParticles, getFPS } from './lib/utils/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -36,7 +35,6 @@ const particleTrailSizeInput = document.getElementById('particleTrailSize') as H
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 
-let DRAW_PARTICLES = selectedField.value === 'particles'
 let DRAW_PARTICLE_LINES = particleLinesCheckbox.checked
 let PAUSED = pauseCheckbox.checked
 let particleDensity = parseFloat(particleDensityInput.value) / 100.0
@@ -126,24 +124,23 @@ const {
     writeParticleProgram,
     particleProgram,
     jacobiProgram,
-    redBlackJacobiProgram,
     divergenceProgram,
     gradientSubtractionProgram,
     boundaryProgram,
     copyProgram,
     advectParticleProgram,
     fadeProgram,
-} = makePrograms(gl)
+} = getPrograms(gl)
 
 const {
     particlesFBO,
     divergenceFBO,
     pressureFBO,
     velocityFBO,
-} = makeFBOs(gl)
+} = getFBOs(gl)
 
-const prevParticlesFBO = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
-const tempTex = new TextureFBO(gl, gl.canvas.width, gl.canvas.height)
+const prevParticlesFBO = new FBO(gl, gl.canvas.width, gl.canvas.height)
+const tempTex = new FBO(gl, gl.canvas.width, gl.canvas.height)
 
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
@@ -269,13 +266,10 @@ const render = (now: number) => {
         texelDims,
         bTexture: divergenceFBO.readFBO.texture,
     })
-    // let fillRedCells = true
     for (let i = 0; i < JACOBI_ITERATIONS; i += 1) {
         jacobiProgram.setTexture('xTexture', pressureFBO.readFBO.texture, 1)
-        // redBlackJacobiProgram.setBool('fillRed', fillRedCells)
         draw(gl, pressureFBO.writeFBO)
         pressureFBO.swap()
-        // fillRedCells = !fillRedCells
     }
 
     applyPressureBoundary(texelDims)

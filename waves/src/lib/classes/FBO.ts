@@ -2,7 +2,7 @@
 /**
  * A class to create a framebuffer object with a texture attachment
  */
-export class TextureFBO {
+export class FBO {
     gl: WebGL2RenderingContext
     width: number
     height: number
