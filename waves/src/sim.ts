@@ -3,14 +3,13 @@
  */
 import { FBO } from './lib/classes/FBO'
 import { getFBOs, getPrograms } from './lib/utils/programs'
-import { colors, draw, drawParticles, getFPS } from './lib/utils/utils'
+import { SimulationSettings, VisField } from './lib/utils/types'
+import { clamp, colors, draw, drawParticles } from './lib/utils/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
 canvas.width = canvas.getBoundingClientRect().width
 canvas.height = canvas.getBoundingClientRect().height
-
-const fpsDiv = document.getElementById('fps') as HTMLDivElement
 
 if (!canvas) {
     throw new Error('No canvas found')
@@ -19,13 +18,11 @@ const gl = canvas.getContext('webgl2')
 if (!gl) {
     throw new Error('WebGL2 not supported')
 }
-const gridScale = 0.8
-let JACOBI_ITERATIONS = 30
+const gridScale = 1.0
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
 const ADVECTION_DISSIPATION = 0.1
 
-type Field = 'velocity' | 'pressure' | 'particles'
 const selectedField = document.getElementById('field') as HTMLSelectElement
 const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
@@ -35,55 +32,58 @@ const particleTrailSizeInput = document.getElementById('particleTrailSize') as H
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 
-let DRAW_PARTICLE_LINES = particleLinesCheckbox.checked
-let PAUSED = pauseCheckbox.checked
-let particleDensity = parseFloat(particleDensityInput.value) / 100.0
-let particleTrailSize = parseFloat(particleTrailSizeInput.value) / 100.0
-let pointSize = Math.max(1, Math.min(5, parseFloat(pointSizeInput.value)))
-let FIELD = selectedField.value as Field
-let colorMode = Math.max(1, Math.min(5, parseInt(colorModeInput.value, 10)))
+const settings: SimulationSettings = {
+    visField: selectedField.value as VisField,
+    jacobiIterations: 30,
+    manualBilerp: bilerpCheckbox.checked,
+    colorMode: parseInt(colorModeInput.value, 10),
+    particleDensity: parseFloat(particleDensityInput.value) / 100.0,
+    showParticleTrails: particleLinesCheckbox.checked,
+    particleTrailSize: parseFloat(particleTrailSizeInput.value) / 100.0,
+    particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
+    paused: pauseCheckbox.checked,
+
+    impulseDirection: [0, 0],
+    impulsePosition: [0, 0],
+    impulseRadius: 0,
+    impulseMagnitude: 0,
+}
 
 particleDensityInput.addEventListener('change', () => {
-    particleDensity = parseFloat(particleDensityInput.value) / 100.0
+    settings.particleDensity = parseFloat(particleDensityInput.value) / 100.0
 })
 particleTrailSizeInput.addEventListener('change', () => {
-    particleTrailSize = parseFloat(particleTrailSizeInput.value) / 100.0
+    settings.particleTrailSize = parseFloat(particleTrailSizeInput.value) / 100.0
 })
 pointSizeInput.addEventListener('change', () => {
-    // clamp point size to [1, 5]
-    pointSize = Math.max(1, Math.min(5, parseFloat(pointSizeInput.value)))
+    settings.particleSize = clamp(parseFloat(pointSizeInput.value), 1, 5)
 })
 colorModeInput.addEventListener('change', () => {
-    colorMode = Math.max(1, Math.min(5, parseInt(colorModeInput.value, 10)))
+    settings.colorMode = clamp(parseInt(colorModeInput.value, 10), 1, 5)
 })
 pauseCheckbox.addEventListener('change', () => {
     if (pauseCheckbox.checked) {
-        PAUSED = true
+        settings.paused = true
     } else {
-        PAUSED = false
+        settings.paused = false
         render(performance.now())
     }
 })
 selectedField.addEventListener('change', () => {
-    FIELD = selectedField.value as Field
-    if (PAUSED) {
+    settings.visField = selectedField.value as VisField
+    if (settings.paused) {
         render(performance.now())
     }
 })
 particleLinesCheckbox.addEventListener('change', () => {
     if (particleLinesCheckbox.checked) {
-        DRAW_PARTICLE_LINES = true
+        settings.showParticleTrails = true
     } else {
-        DRAW_PARTICLE_LINES = false
+        settings.showParticleTrails = false
     }
 })
-
 let mouseDown = false
-let impulseDirection = [0, 0]
 let lastMousePos = [0, 0]
-let impulsePosition = [0, 0]
-let impulseMagnitude = 0
-let impulseRadius = 0
 canvas.addEventListener('mousedown', (e) => {
     const x = e.clientX / gl.canvas.width
     const y = 1 - e.clientY / gl.canvas.height
@@ -99,18 +99,18 @@ canvas.addEventListener('mousemove', (e) => {
         // normalize diff for direction
         const len = Math.sqrt(diff[0] * diff[0] + diff[1] * diff[1])
         const normalizedDiff = (len === 0 || len < 0.002) ? [0, 0] : [diff[0] / len, diff[1] / len]
-        impulseDirection = normalizedDiff
+        settings.impulseDirection = normalizedDiff as [number, number]
         lastMousePos =  [x, y]
-        impulsePosition = [x, y]
-        impulseMagnitude = 1
-        impulseRadius = .0001
+        settings.impulsePosition = [x, y]
+        settings.impulseMagnitude = 1
+        settings.impulseRadius = .0001
     }
 })
 canvas.addEventListener('mouseup', () => {
     mouseDown = false
-    impulseMagnitude = 0
-    impulseRadius = 0
-    impulseDirection = [0, 0]
+    settings.impulseMagnitude = 0
+    settings.impulseRadius = 0
+    settings.impulseDirection = [0, 0]
 })
 
 gl.clearColor(0.0, 0.0, 0.0, 1.0)
@@ -184,6 +184,21 @@ const render = (now: number) => {
     const deltaT = diff === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
     prev = now
     const texelDims = [1.0 / gl.canvas.width, 1.0 / gl.canvas.height] as [number, number]
+    const { 
+        visField,
+        jacobiIterations,
+        manualBilerp,
+        colorMode,
+        particleDensity,
+        showParticleTrails,
+        particleTrailSize,
+        particleSize,
+        paused,
+        impulseDirection,
+        impulsePosition,
+        impulseRadius,
+        impulseMagnitude,
+    } = settings
 
     // External force
     externalForceProgram.use()
@@ -206,7 +221,7 @@ const render = (now: number) => {
         dt: deltaT,
         gridScale,
         texelDims,
-        useBilerp: bilerpCheckbox.checked ? 1 : 0,
+        useBilerp: manualBilerp ? 1 : 0,
         velocity: velocityFBO.readFBO.texture,
         quantity: velocityFBO.readFBO.texture,
         dissipation: ADVECTION_DISSIPATION,
@@ -214,7 +229,7 @@ const render = (now: number) => {
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
-    if (FIELD === 'particles') {
+    if (visField === 'particles') {
         // use forward advection for particles
         advectParticleProgram.use()
         advectParticleProgram.setUniforms({
@@ -240,7 +255,7 @@ const render = (now: number) => {
             texelDims,
             bTexture: velocityFBO.readFBO.texture,
         })
-        for (let i = 0; i < JACOBI_ITERATIONS; i += 1) {
+        for (let i = 0; i < jacobiIterations; i += 1) {
             jacobiProgram.setTexture('xTexture', velocityFBO.readFBO.texture, 1)
             draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
@@ -266,7 +281,7 @@ const render = (now: number) => {
         texelDims,
         bTexture: divergenceFBO.readFBO.texture,
     })
-    for (let i = 0; i < JACOBI_ITERATIONS; i += 1) {
+    for (let i = 0; i < jacobiIterations; i += 1) {
         jacobiProgram.setTexture('xTexture', pressureFBO.readFBO.texture, 1)
         draw(gl, pressureFBO.writeFBO)
         pressureFBO.swap()
@@ -288,9 +303,9 @@ const render = (now: number) => {
     applyVelocityBoundary(texelDims)
 
     // visualization
-    if (FIELD === 'particles') {
-        console.log('pointSize', pointSize)
-        if (DRAW_PARTICLE_LINES) {
+    if (visField === 'particles') {
+        console.log('pointSize', particleSize)
+        if (showParticleTrails) {
             drawParticles(
                 gl,
                 particlesFBO.readFBO.texture,
@@ -299,7 +314,7 @@ const render = (now: number) => {
                 colorMode,
                 prevParticlesFBO,
                 particleDensity,
-                pointSize
+                particleSize
             )
             copyProgram.use()
             copyProgram.setTexture('tex', prevParticlesFBO.texture, 0)
@@ -320,12 +335,12 @@ const render = (now: number) => {
                 colorMode,
                 null,
                 particleDensity,
-                pointSize
+                particleSize
             )
         }
     } else {
         colorVelProgram.use()
-        switch (FIELD) {
+        switch (visField) {
             case 'velocity':
                 colorVelProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)
                 break;
@@ -336,18 +351,7 @@ const render = (now: number) => {
         draw(gl, null)
     }
     
-    // const fps = getFPS()
-    // fpsDiv.innerText = `FPS: ${fps.toPrecision(3)}, iterations: ${JACOBI_ITERATIONS}`
-    // if (fps < 50) {
-    //     JACOBI_ITERATIONS = 15
-    // } else if (fps < 60) {
-    //     JACOBI_ITERATIONS = 20
-    // } else if (fps < 70) {
-    //     JACOBI_ITERATIONS = 25
-    // } else {
-    //     JACOBI_ITERATIONS = 30
-    // }
-    if (PAUSED) {
+    if (paused) {
         return
     }
     requestAnimationFrame(render)
