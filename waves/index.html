@@ -17,13 +17,14 @@
           <option value="particles">particles 🫣</option>
         </select>
       </div>
-      <div class="input">manual bilerp <input type="checkbox" id="bilerp" checked></div>
+      <!-- <div class="input">manual bilerp <input type="checkbox" id="bilerp" checked></div> -->
       <div class="input">pause <input type="checkbox" id="pause"></div>
-      <div class="input">particle trails <input type="checkbox" id="particleLines"></div>
-      <div class="input">particle density <input type="range" value="10" min="1" max="100" id="particleDensity"></div>
-      <div class="input">trail length <input type="range" value="80" min="70" max="100" id="particleTrailSize"></div>
-      <div class="input">point size <input type="number" value="1" min="1" max="5" id="pointSize"></div>
       <div class="input">color mode <input type="number" value="1" min="1" max="5" id="colorMode"></div>
+      <div class="input particles">particle density <input type="range" value="10" min="1" max="100" id="particleDensity"></div>
+      <div class="input particles">point size <input type="number" value="1" min="1" max="5" id="pointSize"></div>
+      <div class="input particles">backwards particles <input type="checkbox" id="advectBackwards"></div>
+      <div class="input particles">particle trails <input type="checkbox" id="particleLines"></div>
+      <div class="input particles trails">trail length <input type="range" value="80" min="70" max="100" id="particleTrailSize"></div>
     </div>
     <script type="module" src="/src/sim.ts"></script>
   </body>

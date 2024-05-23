@@ -16,7 +16,6 @@ canvas {
   position: absolute;
   top: 0;
   right: 0;
-  gap: 5px;
   padding: 10px;
   color: white;
   background-color: rgba(0, 0, 0, 0.5);
@@ -43,6 +42,7 @@ canvas {
   align-items: center;
   justify-content: space-between;
   gap: 5px;
+  padding: 5px;
 }
 
 input[type="range"] {
@@ -55,4 +55,10 @@ input[type="number"] {
   height: 20px;
   background-color: inherit;
   color: white;
+}
+
+.hidden {
+  visibility: hidden;
+  height: 0px;
+  padding: 0px;
 }

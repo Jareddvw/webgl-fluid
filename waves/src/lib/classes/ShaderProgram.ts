@@ -66,6 +66,10 @@ export class ShaderProgram {
         this.gl.uniform2fv(this.uniforms[name], value)
     }
 
+    setVec4(name: string, value: number[]) {
+        this.gl.uniform4fv(this.uniforms[name], value)
+    }
+
     setTexture(name: string, texture: WebGLTexture, index: number) {
         this.gl.activeTexture(this.gl.TEXTURE0 + index)
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
@@ -80,8 +84,18 @@ export class ShaderProgram {
             } else if (typeof value === 'boolean') {
                 this.setBool(key, value)
             } else if (Array.isArray(value)) {
-                // we only use vec2s
-                this.setVec2(key, value)
+                switch (value.length) {
+                    case 2:
+                        this.setVec2(key, value)
+                        break
+                    case 3:
+                        throw new Error('Vec3 not supported')
+                    case 4:
+                        this.setVec4(key, value)
+                        break
+                    default:
+                        throw new Error('Unsupported array length')
+                }
             } else if (value instanceof WebGLTexture) {
                 this.setTexture(key, value, numTextures)
                 numTextures += 1

@@ -9,6 +9,7 @@ in vec2 texCoord;
 uniform sampler2D x;
 uniform float scale;
 uniform vec2 texelDims;
+uniform vec2 offset;
 
 out vec4 color;
 
@@ -19,7 +20,9 @@ vec4 boundary(vec2 coords, vec2 offset, float scale, sampler2D x) {
 void main() {
     vec2 coords = texCoord;
 
-    // color = vec4(1.0, 1.0, 1.0, 1.0);
+    // color = boundary(coords, offset, scale, x);
+    // color = vec4(1.0);
+
     if (coords.x < texelDims.x) {
         color = boundary(coords, vec2(1.0, 0.0), scale, x);
     } else if (coords.x > 1.0 - texelDims.x) {

@@ -35,52 +35,39 @@ export const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
 }
 
-/** Draws 'lines' around the border of the canvas, really just thin triangles. */
-export const drawLines = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
+export const draw2 = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
     if (fbo) {
         fbo.bind()
     } else {
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     }
-    // 4 thin quads around the border of the canvas
-    const quadVertices = new Float32Array([
-        // top quad
-        -1, 1,
-        -1, 0.99,
-        1, 1,
-        1, 0.99,
-        // right quad
-        1, 1,
-        0.99, 1,
-        1, -1,
-        0.99, -1,
-        // bottom quad
+    // draw 1 triangle
+    const triangleVertices = new Float32Array([
         -1, -1,
-        -1, -0.99,
-        1, -1,
-        1, -0.99,
-        // left quad
+        0, -1,
         -1, 1,
-        -0.99, 1,
-        -1, -1,
-        -0.99, -1,
     ])
-    const quadBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW)
+    const triangleBuffer = gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, triangleVertices, gl.STATIC_DRAW)
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(0)
-    gl.drawArrays(gl.TRIANGLES, 0, 8)
+    gl.drawArrays(gl.TRIANGLES, 0, 3)
 }
 
 export const drawLine = (
-    gl: WebGL2RenderingContext, 
-    fbo: FBO, 
+    gl: WebGL2RenderingContext,
+    fbo: FBO | null,
     start: [number, number], 
     end: [number, number]
 ) => {
-    fbo.bind()
+    if (fbo) {
+        fbo.bind()
+    } else {
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    }
     const lineVertices = new Float32Array([
         ...start,
         ...end,

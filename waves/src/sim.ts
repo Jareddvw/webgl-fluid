@@ -4,7 +4,7 @@
 import { FBO } from './lib/classes/FBO'
 import { getFBOs, getPrograms } from './lib/utils/programs'
 import { SimulationSettings, VisField } from './lib/utils/types'
-import { clamp, colors, draw, drawParticles } from './lib/utils/utils'
+import { clamp, colors, draw, draw2, drawLine, drawParticles } from './lib/utils/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -18,27 +18,66 @@ const gl = canvas.getContext('webgl2')
 if (!gl) {
     throw new Error('WebGL2 not supported')
 }
-const gridScale = 1.0
+const gridScale = 0.8
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
 const ADVECTION_DISSIPATION = 0.1
 
 const selectedField = document.getElementById('field') as HTMLSelectElement
-const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
 const pauseCheckbox = document.getElementById('pause') as HTMLInputElement
+const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
+const backwardsAdvectionCheckbox = document.getElementById('advectBackwards') as HTMLInputElement
 const particleDensityInput = document.getElementById('particleDensity') as HTMLInputElement
 const particleTrailSizeInput = document.getElementById('particleTrailSize') as HTMLInputElement
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 
+const hideElem = (element: HTMLElement) => {
+    element.classList.add('hidden')
+}
+const showElem = (element: HTMLElement) => {
+    element.classList.remove('hidden')
+}
+
+const showOrHideElementsByClassname = (className: string, show: boolean) => {
+    const elems = document.getElementsByClassName(className)
+    for (let i = 0; i < elems.length; i += 1) {
+        const elem = elems[i] as HTMLElement
+        if (show) {
+            showElem(elem)
+        } else {
+            hideElem(elem)
+        }
+    }
+}
+
+const showOrHideParticleInput = () => {
+    if (selectedField.value === 'particles') {
+        showOrHideElementsByClassname('particles', true)
+    } else {
+        showOrHideElementsByClassname('particles', false)
+    }
+}
+showOrHideParticleInput()
+
+const showOrHideTrailsInput = () => {
+    if (particleLinesCheckbox.checked) {
+        showOrHideElementsByClassname('trails', true)
+    } else {
+        showOrHideElementsByClassname('trails', false)
+    }
+}
+
+
 const settings: SimulationSettings = {
     visField: selectedField.value as VisField,
     jacobiIterations: 30,
-    manualBilerp: bilerpCheckbox.checked,
+    manualBilerp: bilerpCheckbox?.checked ?? true,
     colorMode: parseInt(colorModeInput.value, 10),
     particleDensity: parseFloat(particleDensityInput.value) / 100.0,
     showParticleTrails: particleLinesCheckbox.checked,
+    advectBackward: backwardsAdvectionCheckbox.checked,
     particleTrailSize: parseFloat(particleTrailSizeInput.value) / 100.0,
     particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
     paused: pauseCheckbox.checked,
@@ -49,6 +88,9 @@ const settings: SimulationSettings = {
     impulseMagnitude: 0,
 }
 
+backwardsAdvectionCheckbox.addEventListener('change', () => {
+    settings.advectBackward = backwardsAdvectionCheckbox.checked
+})
 particleDensityInput.addEventListener('change', () => {
     settings.particleDensity = parseFloat(particleDensityInput.value) / 100.0
 })
@@ -71,6 +113,7 @@ pauseCheckbox.addEventListener('change', () => {
 })
 selectedField.addEventListener('change', () => {
     settings.visField = selectedField.value as VisField
+    showOrHideParticleInput()
     if (settings.paused) {
         render(performance.now())
     }
@@ -81,19 +124,20 @@ particleLinesCheckbox.addEventListener('change', () => {
     } else {
         settings.showParticleTrails = false
     }
+    showOrHideTrailsInput()
 })
 let mouseDown = false
 let lastMousePos = [0, 0]
 canvas.addEventListener('mousedown', (e) => {
-    const x = e.clientX / gl.canvas.width
-    const y = 1 - e.clientY / gl.canvas.height
+    const x = e.clientX / canvas.width
+    const y = 1 - e.clientY / canvas.height
     mouseDown = true
     lastMousePos = [x, y]
 })
 canvas.addEventListener('mousemove', (e) => {
     if (mouseDown) {
-        const x = e.clientX / gl.canvas.width
-        const y = 1 - e.clientY / gl.canvas.height
+        const x = e.clientX / canvas.width
+        const y = 1 - e.clientY / canvas.height
         const diff = [x - lastMousePos[0], y - lastMousePos[1]]
         // force direction is the direction of the mouse movement
         // normalize diff for direction
@@ -144,7 +188,7 @@ const tempTex = new FBO(gl, gl.canvas.width, gl.canvas.height)
 
 // Make a fullscreen black quad texture as a starting point
 fillColorProgram.use()
-gl.uniform4fv(fillColorProgram.uniforms.color, colors.black)
+fillColorProgram.setVec4('color', colors.black)
 draw(gl, velocityFBO.writeFBO)
 draw(gl, particlesFBO.writeFBO)
 velocityFBO.swap()
@@ -156,25 +200,30 @@ particlesFBO.swap()
 let prev = performance.now()
 
 const applyVelocityBoundary = (texelDims: [number, number]) => {
+    copyProgram.use()
+    copyProgram.setTexture('tex', velocityFBO.readFBO.texture, 0)
+    draw(gl, tempTex)
+
     boundaryProgram.use()
     boundaryProgram.setUniforms({
         scale: -1,
-        x: velocityFBO.readFBO.texture,
+        x: tempTex.texture,
         texelDims,
     })
-    draw(gl, velocityFBO.writeFBO)
-    velocityFBO.swap()
+    draw(gl, velocityFBO.readFBO)
 }
 
 const applyPressureBoundary = (texelDims: [number, number]) => {
+    copyProgram.use()
+    copyProgram.setTexture('tex', pressureFBO.readFBO.texture, 0)
+    draw(gl, tempTex)
     boundaryProgram.use()
     boundaryProgram.setUniforms({
         scale: 1,
-        x: pressureFBO.readFBO.texture,
-        texelDims
+        x: tempTex.texture,
+        texelDims,
     })
-    draw(gl, pressureFBO.writeFBO)
-    pressureFBO.swap()
+    draw(gl, pressureFBO.readFBO)
 }
 
 // TODO: draw lines in the direction of the velocity field.
@@ -191,6 +240,7 @@ const render = (now: number) => {
         colorMode,
         particleDensity,
         showParticleTrails,
+        advectBackward,
         particleTrailSize,
         particleSize,
         paused,
@@ -213,7 +263,7 @@ const render = (now: number) => {
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
-    applyVelocityBoundary(texelDims)
+    // applyVelocityBoundary(texelDims)
     
     // Advection
     advectionProgram.use()
@@ -230,20 +280,36 @@ const render = (now: number) => {
     velocityFBO.swap()
 
     if (visField === 'particles') {
-        // use forward advection for particles
-        advectParticleProgram.use()
-        advectParticleProgram.setUniforms({
-            dt: deltaT,
-            gridScale,
-            texelDims,
-            velocity: velocityFBO.readFBO.texture,
-            quantity: particlesFBO.readFBO.texture,
-        })
-        draw(gl, particlesFBO.writeFBO)
-        particlesFBO.swap()
+        if (advectBackward) {
+            // use backward advection for particles
+            advectionProgram.use()
+            advectionProgram.setUniforms({
+                dt: -deltaT,
+                gridScale,
+                texelDims,
+                useBilerp: manualBilerp ? 1 : 0,
+                velocity: velocityFBO.readFBO.texture,
+                quantity: particlesFBO.readFBO.texture,
+                dissipation: 0,
+            })
+            draw(gl, particlesFBO.writeFBO)
+            particlesFBO.swap()
+        } else {
+            // use forward advection for particles
+            advectParticleProgram.use()
+            advectParticleProgram.setUniforms({
+                dt: deltaT,
+                gridScale,
+                texelDims,
+                velocity: velocityFBO.readFBO.texture,
+                quantity: particlesFBO.readFBO.texture,
+            })
+            draw(gl, particlesFBO.writeFBO)
+            particlesFBO.swap()
+        }
     }
 
-    applyVelocityBoundary(texelDims)
+    // applyVelocityBoundary(texelDims)
 
     if (DIFFUSE) {
         // viscous diffusion with jacobi method
@@ -260,7 +326,7 @@ const render = (now: number) => {
             draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
         }
-        applyVelocityBoundary(texelDims)
+        // applyVelocityBoundary(texelDims)
     }
 
     // get divergence of velocity field
@@ -304,7 +370,6 @@ const render = (now: number) => {
 
     // visualization
     if (visField === 'particles') {
-        console.log('pointSize', particleSize)
         if (showParticleTrails) {
             drawParticles(
                 gl,
@@ -324,12 +389,16 @@ const render = (now: number) => {
             fadeProgram.setUniforms({
                 tex: tempTex.texture,
                 fadeFactor: particleTrailSize,
+                bgColor: colors.black,
             })
             draw(gl, prevParticlesFBO)
         } else {
+            fillColorProgram.use()
+            fillColorProgram.setVec4('color', colors.black)
+            draw(gl, null)
             drawParticles(
                 gl,
-                particlesFBO.readFBO.texture, 
+                particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
                 particleProgram,
                 colorMode,
@@ -340,6 +409,9 @@ const render = (now: number) => {
         }
     } else {
         colorVelProgram.use()
+        colorVelProgram.setUniforms({
+            colorMode,
+        })
         switch (visField) {
             case 'velocity':
                 colorVelProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)

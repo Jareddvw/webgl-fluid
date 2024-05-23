@@ -5,8 +5,22 @@ const canvas = document.getElementById('waves') as HTMLCanvasElement;
 canvas.width = canvas.getBoundingClientRect().width
 canvas.height = canvas.getBoundingClientRect().height
 
-const offscreen = canvas.transferControlToOffscreen();
-const worker = new Worker('worker.ts');
+const offscreenCanvas = canvas.transferControlToOffscreen();
+offscreenCanvas.width = canvas.width
+offscreenCanvas.height = canvas.height
+const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+
+// Pass the canvas and control over it to the worker
+worker.postMessage({ canvas: offscreenCanvas }, [offscreenCanvas]);
+
+// When the worker responds, draw the image to the canvas
+worker.onmessage = (e: MessageEvent) => {
+    const imageBitmap = e.data as ImageBitmap;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+        ctx.drawImage(imageBitmap, 0, 0);
+    }
+};
 
 const selectedField = document.getElementById('field') as HTMLSelectElement
 const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
@@ -27,6 +41,7 @@ const settings: SimulationSettings = {
     showParticleTrails: particleLinesCheckbox.checked,
     particleTrailSize: parseFloat(particleTrailSizeInput.value) / 100.0,
     particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
+    advectBackward: false,
     paused: pauseCheckbox.checked,
 
     impulseDirection: [0, 0],
@@ -34,10 +49,11 @@ const settings: SimulationSettings = {
     impulseRadius: 0,
     impulseMagnitude: 0,
 }
-
 const updateWorkerSettings = () => {
+    console.log('updating worker settings')
     worker.postMessage({ settings });
 }
+updateWorkerSettings()
 
 particleDensityInput.addEventListener('change', () => {
     settings.particleDensity = parseFloat(particleDensityInput.value) / 100.0
@@ -108,15 +124,3 @@ canvas.addEventListener('mouseup', () => {
     settings.impulseDirection = [0, 0]
     updateWorkerSettings()
 })
-
-// Pass the canvas and control over it to the worker
-worker.postMessage({ canvas: offscreen }, [offscreen]);
-
-// When the worker responds, draw the image to the canvas
-worker.onmessage = (e: MessageEvent) => {
-    const imageBitmap = e.data as ImageBitmap;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-        ctx.drawImage(imageBitmap, 0, 0);
-    }
-};

@@ -20,6 +20,7 @@ export type SimulationSettings = {
     showParticleTrails: boolean,
     particleTrailSize: number,
     particleSize: number,
+    advectBackward: boolean,
 
     // global settings
     paused: boolean,

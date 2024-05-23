@@ -10,10 +10,12 @@ in vec2 texCoord;
 
 uniform sampler2D tex;
 uniform float fadeFactor;
+uniform vec4 bgColor;
 
 out vec4 color;
 
 void main() {
-    color = vec4(texture(tex, texCoord).xyz * fadeFactor, 1.0);
+    vec4 texColor = texture(tex, texCoord);
+    color = mix(bgColor, texColor, fadeFactor);
 }
 `;
