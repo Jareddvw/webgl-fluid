@@ -34,6 +34,25 @@ const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 const resetButton = document.getElementById('reset') as HTMLButtonElement
 const haltButton = document.getElementById('halt') as HTMLButtonElement
+const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
+
+/** Generates a texture that's gl.canvas.width x gl.canvas.height and contains the given image */
+const makeTextureFromImage = (gl: WebGL2RenderingContext, image: HTMLImageElement): WebGLTexture => {
+    const texture = gl.createTexture()
+    if (!texture) {
+        throw new Error('Could not create texture')
+    }
+    // flip image horizontally
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    gl.generateMipmap(gl.TEXTURE_2D)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    return texture
+}
 
 const hideElem = (element: HTMLElement) => {
     element.classList.add('hidden')
@@ -250,6 +269,26 @@ const resetFields = () => {
 }
 haltFluid()
 
+imageUpload.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) {
+        return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+        const image = new Image()
+        image.src = e.target?.result as string
+        image.onload = () => {
+            const texture = makeTextureFromImage(gl, image)
+            copyProgram.use()
+            copyProgram.setTexture('tex', texture, 0)
+            draw(gl, dyeFBO.writeFBO)
+            dyeFBO.swap()
+        }
+    }
+    reader.readAsDataURL(file)
+})
+
 let prev = performance.now()
 
 const applyVelocityBoundary = (texelDims: [number, number]) => {
@@ -303,7 +342,7 @@ const render = (now: number) => {
         impulseMagnitude,
     } = settings
 
-    // External force (or dye, if in dye mode and right clicking)
+    // External force
     externalForceProgram.use()
     externalForceProgram.setUniforms({
         impulseDirection,
@@ -315,6 +354,7 @@ const render = (now: number) => {
     })
     if (visField === 'dye' && rightClick) {
         externalForceProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
+        externalForceProgram.setFloat('impulseRadius', 0.0005)
         draw(gl, dyeFBO.writeFBO)
         dyeFBO.swap()
     } else {

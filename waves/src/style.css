@@ -65,6 +65,11 @@ input[type="button"] {
   padding: 0px;
 }
 
+input[type="file"] {
+  background-color: inherit;
+  color: white;
+}
+
 .hidden {
   visibility: hidden;
   height: 0px;
