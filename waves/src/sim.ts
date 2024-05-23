@@ -4,7 +4,7 @@
 import { FBO } from './lib/classes/FBO'
 import { getFBOs, getPrograms } from './lib/utils/programs'
 import { SimulationSettings, VisField } from './lib/utils/types'
-import { clamp, colors, draw, draw2, drawLine, drawParticles } from './lib/utils/utils'
+import { clamp, colors, draw, drawParticles, getFpsCallback } from './lib/utils/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
@@ -68,6 +68,7 @@ const showOrHideTrailsInput = () => {
         showOrHideElementsByClassname('trails', false)
     }
 }
+showOrHideTrailsInput()
 
 
 const settings: SimulationSettings = {
@@ -183,19 +184,24 @@ const {
     velocityFBO,
 } = getFBOs(gl)
 
+const getFPS = getFpsCallback()
+
 const prevParticlesFBO = new FBO(gl, gl.canvas.width, gl.canvas.height)
 const tempTex = new FBO(gl, gl.canvas.width, gl.canvas.height)
 
-// Make a fullscreen black quad texture as a starting point
-fillColorProgram.use()
-fillColorProgram.setVec4('color', colors.black)
-draw(gl, velocityFBO.writeFBO)
-draw(gl, particlesFBO.writeFBO)
-velocityFBO.swap()
+const resetFields = () => {
+    // Make a fullscreen black quad texture as a starting point
+    fillColorProgram.use()
+    fillColorProgram.setVec4('color', colors.black)
+    draw(gl, velocityFBO.writeFBO)
+    draw(gl, particlesFBO.writeFBO)
+    velocityFBO.swap()
 
-writeParticleProgram.use()
-draw(gl, particlesFBO.writeFBO)
-particlesFBO.swap()
+    writeParticleProgram.use()
+    draw(gl, particlesFBO.writeFBO)
+    particlesFBO.swap()
+}
+resetFields()
 
 let prev = performance.now()
 
@@ -203,7 +209,6 @@ const applyVelocityBoundary = (texelDims: [number, number]) => {
     copyProgram.use()
     copyProgram.setTexture('tex', velocityFBO.readFBO.texture, 0)
     draw(gl, tempTex)
-
     boundaryProgram.use()
     boundaryProgram.setUniforms({
         scale: -1,
@@ -262,8 +267,6 @@ const render = (now: number) => {
     })
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
-
-    // applyVelocityBoundary(texelDims)
     
     // Advection
     advectionProgram.use()
@@ -309,8 +312,6 @@ const render = (now: number) => {
         }
     }
 
-    // applyVelocityBoundary(texelDims)
-
     if (DIFFUSE) {
         // viscous diffusion with jacobi method
         const alpha = (gridScale * gridScale) / (DIFFUSION_COEFFICIENT * deltaT)
@@ -326,7 +327,6 @@ const render = (now: number) => {
             draw(gl, velocityFBO.writeFBO)
             velocityFBO.swap()
         }
-        // applyVelocityBoundary(texelDims)
     }
 
     // get divergence of velocity field
@@ -422,7 +422,12 @@ const render = (now: number) => {
         }
         draw(gl, null)
     }
-    
+
+    const fps = getFPS()
+    if (fps < 50) {
+        settings.jacobiIterations = 25
+    }
+    document.getElementById('fps')!.innerText = `FPS: ${fps.toFixed(2)}, iterations: ${jacobiIterations}`
     if (paused) {
         return
     }

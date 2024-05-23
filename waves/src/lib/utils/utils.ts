@@ -2,6 +2,16 @@ import { DoubleFBO } from "../classes/DoubleFBO"
 import { ShaderProgram } from "../classes/ShaderProgram"
 import { FBO } from "../classes/FBO"
 
+const quadVertices = new Float32Array([
+    -1, -1,
+    -1, 1,
+    1, 1,
+    1, -1,
+])
+let quadBuffer: WebGLBuffer | null = null
+const vertexOrder = new Uint16Array([3, 2, 0, 0, 1, 2])
+let indexBuffer: WebGLBuffer | null = null
+
 /**
  * Draws a full-screen quad to the given FBO,
  * or, if null, to the screen.
@@ -15,45 +25,17 @@ export const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     }
-    const quadVertices = new Float32Array([
-        -1, -1,
-        -1, 1,
-        1, 1,
-        1, -1,
-    ])
-    const quadBuffer = gl.createBuffer()
+    quadBuffer ??= gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, quadVertices, gl.STATIC_DRAW)
 
-    const vertexOrder = new Uint16Array([3, 2, 0, 0, 1, 2])
-    const indexBuffer = gl.createBuffer()
+    indexBuffer ??= gl.createBuffer()
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, vertexOrder, gl.STATIC_DRAW)
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
     gl.enableVertexAttribArray(0)
     
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
-}
-
-export const draw2 = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
-    if (fbo) {
-        fbo.bind()
-    } else {
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    }
-    // draw 1 triangle
-    const triangleVertices = new Float32Array([
-        -1, -1,
-        0, -1,
-        -1, 1,
-    ])
-    const triangleBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, triangleVertices, gl.STATIC_DRAW)
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(0)
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
 }
 
 export const drawLine = (
@@ -80,11 +62,8 @@ export const drawLine = (
     gl.drawArrays(gl.LINES, 0, 2)
 }
 
-let cachedIndexBufferInfo = {
-    numParticles: 0,
-    particleDensity: 0,
-    indexBuffer: new Float32Array(),
-}
+let particleBuffer: WebGLBuffer | null = null
+let particleIndices = new Float32Array()
 
 export const drawParticles = (
     gl: WebGL2RenderingContext, 
@@ -116,28 +95,16 @@ export const drawParticles = (
         pointSize,
     })
     
-    let indexList: number[] = []
-    if (
-        numParticles !== cachedIndexBufferInfo.numParticles || 
-        particleDensity !== cachedIndexBufferInfo.particleDensity
-    ) {
-        // only need to create the index buffer if the number/density of particles changed
+    particleBuffer ??= gl.createBuffer()
+    gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer)
+    if (particleIndices.length !== numParticles) {
+        particleIndices = new Float32Array(numParticles)
         for (let i = 0; i < numParticles; i += 1) {
-            indexList.push(i / particleDensity)
+            particleIndices[i] = i / particleDensity
         }
-        const indexBuffer = gl.createBuffer()
-        const indices = new Float32Array(indexList)
-        gl.bindBuffer(gl.ARRAY_BUFFER, indexBuffer)
-        gl.bufferData(gl.ARRAY_BUFFER, indices, gl.STATIC_DRAW)
-        cachedIndexBufferInfo = {
-            numParticles,
-            particleDensity,
-            indexBuffer: indices,
-        }
-    } else {
-        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
-        gl.bufferData(gl.ARRAY_BUFFER, cachedIndexBufferInfo.indexBuffer, gl.STATIC_DRAW)
     }
+    gl.bufferData(gl.ARRAY_BUFFER, particleIndices, gl.STATIC_DRAW)
+
     gl.enableVertexAttribArray(0)
     gl.vertexAttribPointer(0, 1, gl.FLOAT, false, 0, 0)
 
@@ -152,25 +119,23 @@ export const maybeResize = (canvas: HTMLCanvasElement, fbos: (DoubleFBO | FBO)[]
     }
 }
 
-let lastCalledTime = 0
-let fps = 0
-const deltaArray: number[] = []
-
-export const getFPS = () => {
-    if (!lastCalledTime) {
-        lastCalledTime = Date.now()
-        fps = 0
-        return fps
+export const getFpsCallback = () => {
+    let lastCalledTime = 0
+    let totalFrameTimes = 0
+    const deltaArray: number[] = []
+    const getFPS = () => {
+        // use a sliding window to calculate the average fps over the last 10 frames
+        const now = performance.now()
+        const delta = now - lastCalledTime
+        lastCalledTime = now
+        deltaArray.push(delta)
+        totalFrameTimes += delta
+        if (deltaArray.length > 10) {
+            totalFrameTimes -= deltaArray.shift() as number
+        }
+        return 1000 / (totalFrameTimes / deltaArray.length)
     }
-    const delta = (Date.now() - lastCalledTime) / 1000
-    lastCalledTime = Date.now()
-    deltaArray.push(delta)
-    if (deltaArray.length > 60) {
-        deltaArray.shift()
-    }
-    const sum = deltaArray.reduce((acc, curr) => acc + curr, 0)
-    fps = deltaArray.length / sum
-    return fps
+    return getFPS
 }
 
 export const colors = {
