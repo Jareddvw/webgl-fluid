@@ -130,7 +130,7 @@ export const getFpsCallback = () => {
         lastCalledTime = now
         deltaArray.push(delta)
         totalFrameTimes += delta
-        if (deltaArray.length > 10) {
+        if (deltaArray.length > 60) {
             totalFrameTimes -= deltaArray.shift() as number
         }
         return 1000 / (totalFrameTimes / deltaArray.length)
@@ -144,41 +144,6 @@ export const colors = {
     empty: [0.0, 0.0, 0.0, 0.0],
     white: [1.0, 1.0, 1.0, 1.0],
 }
-
-/**
- * Solves Ax = b for x using the Jacobi method.
- */
-export const solvePoisson = (
-    gl: WebGL2RenderingContext,
-    jacobiProgram: ShaderProgram,
-    jacobiFBO: DoubleFBO,
-    inputFBO: FBO,
-    bTexture: WebGLTexture,
-    alpha: number,
-    rBeta: number,
-    numIterations: number,
-): FBO => {
-    let jacobiInputFBO = inputFBO;
-    jacobiProgram.use()
-    jacobiProgram.setUniforms({
-        alpha,
-        rBeta,
-        bTexture,
-        texelDims: [1.0 / gl.canvas.width, 1.0 / gl.canvas.height],
-    })
-
-    // solve for diffusion
-    for (let i = 0; i < numIterations; i += 1) {
-        jacobiProgram.setTexture("xTexture", jacobiInputFBO.texture, 1)
-
-        draw(gl, jacobiFBO.writeFBO)
-        jacobiFBO.swap()
-        jacobiInputFBO = jacobiFBO.readFBO
-    }
-    return jacobiFBO.readFBO
-}
-
-
 
 export const clamp = (val: number, min: number, max: number) => {
     return Math.min(Math.max(val, min), max)

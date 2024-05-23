@@ -1,12 +1,13 @@
 
 
-export type VisField = 'velocity' | 'pressure' | 'particles'
+export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye'
 
 export type SimulationSettings = {
     // fluid settings
     visField: VisField,
     jacobiIterations: number,
     manualBilerp: boolean,
+    rightClick: boolean,
 
     // force settings
     impulseDirection: [number, number],

@@ -10,7 +10,7 @@ uniform float dt;
 uniform float gridScale; // Grid scale
 uniform vec2 texelDims; // 1 / texture dimensions
 uniform bool useBilerp;
-float dissipation;
+uniform float dissipation;
 
 out vec4 fragColor;
 

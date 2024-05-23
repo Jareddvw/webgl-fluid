@@ -24,6 +24,9 @@ void main() {
         float blue = max(-v.x, -v.y);
         blue = max(blue, 0.0);
         color = vec4(abs(v.xy), blue, 1.0);
+    } else {
+        // default: blue is negative, red is positive
+        color = vec4(v.x, length(v.xy), -v.y, 1.0);
     }
 }
 `;

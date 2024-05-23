@@ -18,10 +18,10 @@ const gl = canvas.getContext('webgl2')
 if (!gl) {
     throw new Error('WebGL2 not supported')
 }
-const gridScale = 0.8
+const gridScale = 1
 const DIFFUSION_COEFFICIENT = 1.0
 const DIFFUSE = false
-const ADVECTION_DISSIPATION = 0.1
+const ADVECTION_DISSIPATION = 0.001
 
 const selectedField = document.getElementById('field') as HTMLSelectElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
@@ -32,6 +32,8 @@ const particleDensityInput = document.getElementById('particleDensity') as HTMLI
 const particleTrailSizeInput = document.getElementById('particleTrailSize') as HTMLInputElement
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
+const resetButton = document.getElementById('reset') as HTMLButtonElement
+const haltButton = document.getElementById('halt') as HTMLButtonElement
 
 const hideElem = (element: HTMLElement) => {
     element.classList.add('hidden')
@@ -52,17 +54,8 @@ const showOrHideElementsByClassname = (className: string, show: boolean) => {
     }
 }
 
-const showOrHideParticleInput = () => {
-    if (selectedField.value === 'particles') {
-        showOrHideElementsByClassname('particles', true)
-    } else {
-        showOrHideElementsByClassname('particles', false)
-    }
-}
-showOrHideParticleInput()
-
 const showOrHideTrailsInput = () => {
-    if (particleLinesCheckbox.checked) {
+    if (particleLinesCheckbox.checked && selectedField.value === 'particles') {
         showOrHideElementsByClassname('trails', true)
     } else {
         showOrHideElementsByClassname('trails', false)
@@ -70,9 +63,20 @@ const showOrHideTrailsInput = () => {
 }
 showOrHideTrailsInput()
 
+const showOrHideParticleInput = () => {
+    if (selectedField.value === 'particles') {
+        showOrHideElementsByClassname('particles', true)
+    } else {
+        showOrHideElementsByClassname('particles', false)
+    }
+    showOrHideTrailsInput()
+}
+showOrHideParticleInput()
+
 
 const settings: SimulationSettings = {
     visField: selectedField.value as VisField,
+    rightClick: false,
     jacobiIterations: 30,
     manualBilerp: bilerpCheckbox?.checked ?? true,
     colorMode: parseInt(colorModeInput.value, 10),
@@ -89,6 +93,22 @@ const settings: SimulationSettings = {
     impulseMagnitude: 0,
 }
 
+resetButton.addEventListener('click', () => {
+    settings.paused = true
+    requestAnimationFrame(() => {
+        resetFields()
+        settings.paused = false
+        render(performance.now())
+    })
+})
+haltButton.addEventListener('click', () => {
+    settings.paused = true
+    requestAnimationFrame(() => {
+        haltFluid()
+        settings.paused = false
+        render(performance.now())
+    })
+})
 backwardsAdvectionCheckbox.addEventListener('change', () => {
     settings.advectBackward = backwardsAdvectionCheckbox.checked
 })
@@ -129,7 +149,13 @@ particleLinesCheckbox.addEventListener('change', () => {
 })
 let mouseDown = false
 let lastMousePos = [0, 0]
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault()
+})
 canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 2) {
+        settings.rightClick = true
+    }
     const x = e.clientX / canvas.width
     const y = 1 - e.clientY / canvas.height
     mouseDown = true
@@ -152,6 +178,9 @@ canvas.addEventListener('mousemove', (e) => {
     }
 })
 canvas.addEventListener('mouseup', () => {
+    if (settings.rightClick) {
+        settings.rightClick = false
+    }
     mouseDown = false
     settings.impulseMagnitude = 0
     settings.impulseRadius = 0
@@ -182,6 +211,7 @@ const {
     divergenceFBO,
     pressureFBO,
     velocityFBO,
+    dyeFBO,
 } = getFBOs(gl)
 
 const getFPS = getFpsCallback()
@@ -189,19 +219,36 @@ const getFPS = getFpsCallback()
 const prevParticlesFBO = new FBO(gl, gl.canvas.width, gl.canvas.height)
 const tempTex = new FBO(gl, gl.canvas.width, gl.canvas.height)
 
-const resetFields = () => {
-    // Make a fullscreen black quad texture as a starting point
-    fillColorProgram.use()
-    fillColorProgram.setVec4('color', colors.black)
-    draw(gl, velocityFBO.writeFBO)
-    draw(gl, particlesFBO.writeFBO)
-    velocityFBO.swap()
-
+const resetParticles = () => {
     writeParticleProgram.use()
     draw(gl, particlesFBO.writeFBO)
     particlesFBO.swap()
 }
-resetFields()
+const resetDye = () => {
+    fillColorProgram.use()
+    fillColorProgram.setVec4('color', colors.black)
+    draw(gl, dyeFBO.writeFBO)
+    dyeFBO.swap()
+}
+
+const haltFluid = () => {
+    // Make a fullscreen black quad texture as a starting point
+    fillColorProgram.use()
+    fillColorProgram.setVec4('color', colors.black)
+    draw(gl, velocityFBO.writeFBO)
+    draw(gl, pressureFBO.writeFBO)
+    draw(gl, divergenceFBO.writeFBO)
+    draw(gl, tempTex)
+    velocityFBO.swap()
+    pressureFBO.swap()
+    divergenceFBO.swap()
+}
+const resetFields = () => {
+    haltFluid()
+    resetParticles()
+    resetDye()
+}
+haltFluid()
 
 let prev = performance.now()
 
@@ -242,6 +289,7 @@ const render = (now: number) => {
         visField,
         jacobiIterations,
         manualBilerp,
+        rightClick,
         colorMode,
         particleDensity,
         showParticleTrails,
@@ -255,7 +303,7 @@ const render = (now: number) => {
         impulseMagnitude,
     } = settings
 
-    // External force
+    // External force (or dye, if in dye mode and right clicking)
     externalForceProgram.use()
     externalForceProgram.setUniforms({
         impulseDirection,
@@ -265,8 +313,14 @@ const render = (now: number) => {
         aspectRatio: gl.canvas.width / gl.canvas.height,
         velocity: velocityFBO.readFBO.texture,
     })
-    draw(gl, velocityFBO.writeFBO)
-    velocityFBO.swap()
+    if (visField === 'dye' && rightClick) {
+        externalForceProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
+        draw(gl, dyeFBO.writeFBO)
+        dyeFBO.swap()
+    } else {
+        draw(gl, velocityFBO.writeFBO)
+        velocityFBO.swap()
+    }
     
     // Advection
     advectionProgram.use()
@@ -276,9 +330,14 @@ const render = (now: number) => {
         texelDims,
         useBilerp: manualBilerp ? 1 : 0,
         velocity: velocityFBO.readFBO.texture,
-        quantity: velocityFBO.readFBO.texture,
         dissipation: ADVECTION_DISSIPATION,
     })
+    if (visField === 'dye') {
+        advectionProgram.setTexture('quantity', dyeFBO.readFBO.texture, 1)
+        draw(gl, dyeFBO.writeFBO)
+        dyeFBO.swap()
+    }
+    advectionProgram.setTexture('quantity', velocityFBO.readFBO.texture, 1)
     draw(gl, velocityFBO.writeFBO)
     velocityFBO.swap()
 
@@ -419,6 +478,10 @@ const render = (now: number) => {
             case 'pressure':
                 colorVelProgram.setTexture('velocity', pressureFBO.readFBO.texture, 0)
                 break;
+            case 'dye':
+                colorVelProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
+                colorVelProgram.setFloat('colorMode', 2)
+                break;
         }
         draw(gl, null)
     }
@@ -427,7 +490,7 @@ const render = (now: number) => {
     if (fps < 50) {
         settings.jacobiIterations = 25
     }
-    document.getElementById('fps')!.innerText = `FPS: ${fps.toFixed(2)}, iterations: ${jacobiIterations}`
+    document.getElementById('fps')!.innerText = `FPS: ${fps.toFixed(1)}, iterations: ${jacobiIterations}`
     if (paused) {
         return
     }

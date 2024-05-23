@@ -57,6 +57,14 @@ input[type="number"] {
   color: white;
 }
 
+input[type="button"] {
+  width: 50px;
+  height: 24px;
+  background-color: inherit;
+  color: white;
+  padding: 0px;
+}
+
 .hidden {
   visibility: hidden;
   height: 0px;

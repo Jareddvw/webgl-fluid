@@ -125,12 +125,14 @@ export const getFBOs = (gl: WebGL2RenderingContext): FBORecord => {
     const pressureFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const divergenceFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
+    const dyeFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
 
     const record = {
         particlesFBO,
         pressureFBO,
         divergenceFBO,
         velocityFBO,
+        dyeFBO,
     }
     cachedFBOs.set(gl, record)
     return record
