@@ -17,16 +17,22 @@ void main() {
     vec4 v = texture(velocityTexture, texCoord);
     float speed = length(v.xy);
 
-    if (colorMode == 1.0) {
-        // no velocity is black, max velocity is white
-        color = vec4(speed, speed, speed, 1.0);
-    } else if (colorMode == 2.0) {
+    if (colorMode == 0.0) {
+        // rainbow
         float blue = max(-v.x, -v.y);
         blue = max(blue, 0.0);
         color = vec4(abs(v.xy), blue, 1.0);
-    } else {
-        // default: blue is negative, red is positive
-        color = vec4(v.x, length(v.xy), -v.y, 1.0);
+    } else if (colorMode == 1.0) {
+        // black and white
+        color = vec4(speed, speed, speed, 1.0);
+    } else if (colorMode == 2.0) {
+        // blue-green
+        color = vec4(0.0, abs(v.y), abs(v.x), 1.0);
+    } else if (colorMode == 3.0) {
+        // pink with black/dark 
+        float r = 1.0 - speed;
+        float b = 1.0 - speed * 2.0;
+        color = vec4(r, 0.0, b, 1.0);
     }
 }
 `;

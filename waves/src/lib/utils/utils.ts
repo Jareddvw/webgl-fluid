@@ -38,30 +38,6 @@ export const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
     gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0)
 }
 
-export const drawLine = (
-    gl: WebGL2RenderingContext,
-    fbo: FBO | null,
-    start: [number, number], 
-    end: [number, number]
-) => {
-    if (fbo) {
-        fbo.bind()
-    } else {
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height)
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    }
-    const lineVertices = new Float32Array([
-        ...start,
-        ...end,
-    ])
-    const lineBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, lineVertices, gl.STATIC_DRAW)
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0)
-    gl.enableVertexAttribArray(0)
-    gl.drawArrays(gl.LINES, 0, 2)
-}
-
 let particleBuffer: WebGLBuffer | null = null
 let particleIndices = new Float32Array()
 
@@ -124,7 +100,7 @@ export const getFpsCallback = () => {
     let totalFrameTimes = 0
     const deltaArray: number[] = []
     const getFPS = () => {
-        // use a sliding window to calculate the average fps over the last 10 frames
+        // use a sliding window to calculate the average fps over the last 60 frames
         const now = performance.now()
         const delta = now - lastCalledTime
         lastCalledTime = now
@@ -139,12 +115,32 @@ export const getFpsCallback = () => {
 }
 
 export const colors = {
-    purple: [0.6, 0.1, 0.4, 1.0],
     black: [0.0, 0.0, 0.0, 1.0],
     empty: [0.0, 0.0, 0.0, 0.0],
     white: [1.0, 1.0, 1.0, 1.0],
+    purple: [0.6, 0.1, 0.4, 1.0],
+    pink: [1.0, 0.0, 1.0, 1.0],
 }
 
 export const clamp = (val: number, min: number, max: number) => {
     return Math.min(Math.max(val, min), max)
+}
+
+
+/** Generates a texture that's gl.canvas.width x gl.canvas.height and contains the given image */
+export const makeTextureFromImage = (gl: WebGL2RenderingContext, image: HTMLImageElement): WebGLTexture => {
+    const texture = gl.createTexture()
+    if (!texture) {
+        throw new Error('Could not create texture')
+    }
+    // flip image horizontally
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+    gl.generateMipmap(gl.TEXTURE_2D)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    return texture
 }

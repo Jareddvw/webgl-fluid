@@ -19,9 +19,19 @@ import { drawParticleFrag } from "../shaders/particles/drawParticles.frag"
 import { drawParticlesVert } from "../shaders/particles/drawParticles.vert"
 import { writeParticlesFrag } from "../shaders/particles/writeParticles.frag"
 import { redBlackJacobiFrag } from "../shaders/simulation/redBlackJacobi.frag"
+import { FBO } from "../classes/FBO"
 
 type ProgramRecord = { [key in string]: ShaderProgram }
-type FBORecord = { [key in string]: DoubleFBO }
+type FBORecord = {
+    particlesFBO: DoubleFBO,
+    pressureFBO: DoubleFBO,
+    divergenceFBO: DoubleFBO,
+    velocityFBO: DoubleFBO,
+    dyeFBO: DoubleFBO,
+
+    prevParticlesFBO: FBO,
+    temp: FBO,
+}
 
 const cachedPrograms = new Map<WebGL2RenderingContext, ProgramRecord>()
 const cachedFBOs = new Map<WebGL2RenderingContext, FBORecord>()
@@ -127,12 +137,20 @@ export const getFBOs = (gl: WebGL2RenderingContext): FBORecord => {
     const velocityFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
     const dyeFBO = new DoubleFBO(gl, gl.canvas.width, gl.canvas.height)
 
+    const prevParticlesFBO = new FBO(gl, gl.canvas.width, gl.canvas.height)
+    const temp = new FBO(gl, gl.canvas.width, gl.canvas.height)
+
     const record = {
+        // double FBOs
         particlesFBO,
         pressureFBO,
         divergenceFBO,
         velocityFBO,
         dyeFBO,
+
+        // single FBOs
+        prevParticlesFBO,
+        temp,
     }
     cachedFBOs.set(gl, record)
     return record
