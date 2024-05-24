@@ -26,9 +26,9 @@ const {
     fillColorProgram,
     externalForceProgram,
     advectionProgram,
-    colorVelProgram,
+    colorFieldProgram,
     writeParticleProgram,
-    particleProgram,
+    drawParticleProgram,
     jacobiProgram,
     divergenceProgram,
     gradientSubtractionProgram,
@@ -200,7 +200,7 @@ const render = (now: number) => {
 
     if (visField === 'particles') {
         if (advectBackward) {
-            // use backward advection for particles
+            // only use backward advection for particles for really weird behavior lol
             advectionProgram.use()
             advectionProgram.setUniforms({
                 dt: -deltaT,
@@ -286,12 +286,17 @@ const render = (now: number) => {
 
     // visualization
     if (visField === 'particles') {
+        const bgColor = (
+            colorMode === ColorMode.Pink ? 
+                colors.pink :
+                colors.black
+        )
         if (showParticleTrails) {
             drawParticles(
                 gl,
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
-                particleProgram,
+                drawParticleProgram,
                 colorMode,
                 prevParticlesFBO,
                 particleDensity,
@@ -305,25 +310,18 @@ const render = (now: number) => {
             fadeProgram.setUniforms({
                 tex: tempTex.texture,
                 fadeFactor: particleTrailSize,
-                bgColor: (
-                    colorMode === ColorMode.Pink ? 
-                    colors.pink : 
-                    colors.black
-                )
+                bgColor,
             })
             draw(gl, prevParticlesFBO)
         } else {
             fillColorProgram.use()
-            fillColorProgram.setVec4(
-                'color',
-                colorMode === ColorMode.Pink ? colors.pink : colors.black
-            )
+            fillColorProgram.setVec4('color', bgColor)
             draw(gl, null)
             drawParticles(
                 gl,
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
-                particleProgram,
+                drawParticleProgram,
                 colorMode,
                 null,
                 particleDensity,
@@ -331,18 +329,14 @@ const render = (now: number) => {
             )
         }
     } else {
-        colorVelProgram.use()
-        colorVelProgram.setFloat('colorMode', colorMode)
-        switch (visField) {
-            case 'velocity':
-                colorVelProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)
-                break;
-            case 'pressure':
-                colorVelProgram.setTexture('velocity', pressureFBO.readFBO.texture, 0)
-                break;
-            case 'dye':
-                colorVelProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
-                break;
+        colorFieldProgram.use()
+        colorFieldProgram.setFloat('colorMode', colorMode)
+        if (visField === 'velocity') {
+            colorFieldProgram.setTexture('velocity', velocityFBO.readFBO.texture, 0)
+        } else if (visField === 'pressure') {
+            colorFieldProgram.setTexture('velocity', pressureFBO.readFBO.texture, 0)
+        } else if (visField === 'dye') {
+            colorFieldProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
         }
         draw(gl, null)
     }

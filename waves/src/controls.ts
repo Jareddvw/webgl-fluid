@@ -22,6 +22,9 @@ const resetButton = document.getElementById('reset') as HTMLButtonElement
 const haltButton = document.getElementById('halt') as HTMLButtonElement
 const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
 
+/**
+ * The simulation settings.
+ */
 const settings: SimulationSettings = {
     visField: selectedField.value as VisField,
     rightClick: false,

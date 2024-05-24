@@ -64,7 +64,7 @@ export const getPrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
     const advectionProgram = new ShaderProgram(gl, [passThrough5V, advectionShader])
 
     const colorFrag = new Shader(gl, gl.FRAGMENT_SHADER, velocityToColorFrag)
-    const colorVelProgram = new ShaderProgram(gl, [passThrough5V, colorFrag])
+    const colorFieldProgram = new ShaderProgram(gl, [passThrough5V, colorFrag])
 
     const drawParticle = new Shader(gl, gl.FRAGMENT_SHADER, drawParticleFrag)
     const drawParticleProgram = new ShaderProgram(gl, [particleV, drawParticle])
@@ -102,12 +102,12 @@ export const getPrograms = (gl: WebGL2RenderingContext): ProgramRecord => {
         advectionProgram,
         // copies a texture to a destination
         copyProgram,
-        // renders the velocity texture to the screen
-        colorVelProgram,
+        // colors the velocity (or any other) field
+        colorFieldProgram,
         // writes initial particles to a texture
         writeParticleProgram,
         // draws particles
-        particleProgram: drawParticleProgram,
+        drawParticleProgram,
         // jacobi iteration
         jacobiProgram,
         // red-black jacobi iteration
