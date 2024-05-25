@@ -2,14 +2,21 @@
  * The main simulation logic.
  */
 import { getSettings, setSettings } from './controls'
-import { getFBOs, getPrograms } from './lib/utils/programs'
+import { FBO } from './lib/classes/FBO'
+import { Renderer } from './lib/classes/Renderer'
+import { ShaderProgram } from './lib/classes/ShaderProgram'
 import { ColorMode } from './lib/utils/types'
-import { colors, draw, drawParticles, getFpsCallback } from './lib/utils/utils'
+import { colors, getFpsCallback } from './lib/utils/utils'
 import './style.css'
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement
 canvas.width = canvas.getBoundingClientRect().width
 canvas.height = canvas.getBoundingClientRect().height
+
+addEventListener('resize', () => {
+    canvas.width = canvas.getBoundingClientRect().width
+    canvas.height = canvas.getBoundingClientRect().height
+})
 
 if (!canvas) {
     throw new Error('No canvas found')
@@ -19,65 +26,69 @@ if (!gl) {
     throw new Error('WebGL2 not supported')
 }
 
-gl.clearColor(0.0, 0.0, 0.0, 1.0)
-gl.clear(gl.COLOR_BUFFER_BIT)
+const renderer = new Renderer(gl)
+
+const {
+    particlesFBO: pFBO,
+    divergenceFBO: dFBO,
+    pressureFBO: prFBO,
+    velocityFBO: vFBO,
+    dyeFBO: dyFBO,
+
+    prevParticlesFBO: ppFBO,
+    temp: tFBO,
+} = renderer.getFBOs()
 
 const {
     fillColorProgram,
-    externalForceProgram,
-    advectionProgram,
-    colorFieldProgram,
     writeParticleProgram,
-    drawParticleProgram,
-    jacobiProgram,
-    divergenceProgram,
-    gradientSubtractionProgram,
-    boundaryProgram,
-    copyProgram,
-    advectParticleProgram,
-    fadeProgram,
-} = getPrograms(gl)
+} = renderer.getPrograms()
 
-const {
-    particlesFBO,
-    divergenceFBO,
-    pressureFBO,
-    velocityFBO,
-    dyeFBO,
-
-    prevParticlesFBO,
-    temp: tempTex,
-} = getFBOs(gl)
+const { drawQuad, drawParticles: drawP } = renderer
+const draw = (gl: WebGL2RenderingContext, fbo: FBO | null) => {
+    drawQuad.call(renderer, fbo)
+}
+const drawParticles = (
+    particleTexture: WebGLTexture,
+    velocityTexture: WebGLTexture,
+    particleProgram: ShaderProgram,
+    colorMode: number,
+    fbo: FBO | null,
+    particleDensity = 0.1,
+    pointSize = 1,
+) => {
+    drawP.call(renderer, particleTexture, velocityTexture, particleProgram, colorMode, fbo, particleDensity, pointSize)
+}
 
 const getFPS = getFpsCallback()
 
 const resetParticles = () => {
     writeParticleProgram.use()
-    draw(gl, particlesFBO.writeFBO)
-    particlesFBO.swap()
+    draw(gl, pFBO.writeFBO)
+    pFBO.swap()
 
     fillColorProgram.use()
     fillColorProgram.setVec4('color', colors.black)
-    draw(gl, prevParticlesFBO)
+    draw(gl, ppFBO)
 }
 const resetDye = () => {
     fillColorProgram.use()
     fillColorProgram.setVec4('color', colors.black)
-    draw(gl, dyeFBO.writeFBO)
-    dyeFBO.swap()
+    draw(gl, dyFBO.writeFBO)
+    dyFBO.swap()
 }
 
 const haltFluid = () => {
     // Make a fullscreen black quad texture as a starting point
     fillColorProgram.use()
     fillColorProgram.setVec4('color', colors.black)
-    draw(gl, velocityFBO.writeFBO)
-    draw(gl, pressureFBO.writeFBO)
-    draw(gl, divergenceFBO.writeFBO)
-    draw(gl, tempTex)
-    velocityFBO.swap()
-    pressureFBO.swap()
-    divergenceFBO.swap()
+    draw(gl, vFBO.writeFBO)
+    draw(gl, prFBO.writeFBO)
+    draw(gl, dFBO.writeFBO)
+    draw(gl, tFBO)
+    vFBO.swap()
+    prFBO.swap()
+    dFBO.swap()
 }
 const resetFields = () => {
     haltFluid()
@@ -88,33 +99,61 @@ resetFields()
 
 let prev = performance.now()
 
-const applyVelocityBoundary = (texelDims: [number, number]) => {
-    copyProgram.use()
-    copyProgram.setTexture('tex', velocityFBO.readFBO.texture, 0)
-    draw(gl, tempTex)
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: -1,
-        x: tempTex.texture,
-        texelDims,
-    })
-    draw(gl, velocityFBO.readFBO)
-}
-
-const applyPressureBoundary = (texelDims: [number, number]) => {
-    copyProgram.use()
-    copyProgram.setTexture('tex', pressureFBO.readFBO.texture, 0)
-    draw(gl, tempTex)
-    boundaryProgram.use()
-    boundaryProgram.setUniforms({
-        scale: 1,
-        x: tempTex.texture,
-        texelDims,
-    })
-    draw(gl, pressureFBO.readFBO)
-}
-
 const render = (now: number) => {
+    const {
+        fillColorProgram,
+        externalForceProgram,
+        advectionProgram,
+        colorFieldProgram,
+        writeParticleProgram,
+        drawParticleProgram,
+        jacobiProgram,
+        divergenceProgram,
+        gradientSubtractionProgram,
+        boundaryProgram,
+        copyProgram,
+        advectParticleProgram,
+        fadeProgram,
+    } = renderer.getPrograms()
+    
+    const {
+        particlesFBO,
+        divergenceFBO,
+        pressureFBO,
+        velocityFBO,
+        dyeFBO,
+    
+        prevParticlesFBO,
+        temp: tempTex,
+    } = renderer.getFBOs()
+
+    const applyVelocityBoundary = (texelDims: [number, number]) => {
+        copyProgram.use()
+        copyProgram.setTexture('tex', velocityFBO.readFBO.texture, 0)
+        draw(gl, tempTex)
+        boundaryProgram.use()
+        boundaryProgram.setUniforms({
+            scale: -1,
+            x: tempTex.texture,
+            texelDims,
+        })
+        draw(gl, velocityFBO.readFBO)
+    }
+    
+    const applyPressureBoundary = (texelDims: [number, number]) => {
+        copyProgram.use()
+        copyProgram.setTexture('tex', pressureFBO.readFBO.texture, 0)
+        draw(gl, tempTex)
+        boundaryProgram.use()
+        boundaryProgram.setUniforms({
+            scale: 1,
+            x: tempTex.texture,
+            texelDims,
+        })
+        draw(gl, pressureFBO.readFBO)
+    }
+
+    renderer.maybeResize()
     const diff = now - prev
     const deltaT = diff === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
     prev = now
@@ -294,7 +333,6 @@ const render = (now: number) => {
         )
         if (showParticleTrails) {
             drawParticles(
-                gl,
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
                 drawParticleProgram,
@@ -319,7 +357,6 @@ const render = (now: number) => {
             fillColorProgram.setVec4('color', bgColor)
             draw(gl, null)
             drawParticles(
-                gl,
                 particlesFBO.readFBO.texture,
                 velocityFBO.readFBO.texture,
                 drawParticleProgram,
@@ -348,3 +385,25 @@ const render = (now: number) => {
 }
 
 render(prev)
+
+
+// const simulation = new Simulation(canvas, getSettings());
+// const render2 = (time: number) => {
+//     const settings = getSettings();
+//     const { paused, reset, halt } = settings;
+//     if (paused) {
+//         requestAnimationFrame(render2);
+//         return;
+//     } else if (halt) {
+//         simulation.halt();
+//         setSettings({ halt: false });
+//     } else if (reset) {
+//         simulation.resetAll();
+//         setSettings({ reset: false });
+//     }
+
+//     simulation.updateSettings(settings);
+//     simulation.step();
+//     requestAnimationFrame(render2);
+// }
+// requestAnimationFrame(render2);
