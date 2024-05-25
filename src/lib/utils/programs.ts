@@ -20,18 +20,7 @@ import { drawParticlesVert } from "../shaders/particles/drawParticles.vert"
 import { writeParticlesFrag } from "../shaders/particles/writeParticles.frag"
 import { redBlackJacobiFrag } from "../shaders/simulation/redBlackJacobi.frag"
 import { FBO } from "../classes/FBO"
-
-type ProgramRecord = { [key in string]: ShaderProgram }
-type FBORecord = {
-    particlesFBO: DoubleFBO,
-    pressureFBO: DoubleFBO,
-    divergenceFBO: DoubleFBO,
-    velocityFBO: DoubleFBO,
-    dyeFBO: DoubleFBO,
-
-    prevParticlesFBO: FBO,
-    temp: FBO,
-}
+import { FBORecord, ProgramRecord } from "./types"
 
 const cachedPrograms = new Map<WebGL2RenderingContext, ProgramRecord>()
 const cachedFBOs = new Map<WebGL2RenderingContext, FBORecord>()

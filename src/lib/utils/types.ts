@@ -1,4 +1,37 @@
+import { DoubleFBO } from "../classes/DoubleFBO"
+import { FBO } from "../classes/FBO"
+import { ShaderProgram } from "../classes/ShaderProgram"
 
+
+const ShaderTypes = [
+    'fillColorProgram', 
+    'externalForceProgram', 
+    'advectionProgram', 
+    'copyProgram', 
+    'colorFieldProgram', 
+    'drawParticleProgram', 
+    'jacobiProgram', 
+    'writeParticleProgram', 
+    'divergenceProgram', 
+    'gradientSubtractionProgram', 
+    'boundaryProgram', 
+    'advectParticleProgram', 
+    'fadeProgram', 
+    'redBlackJacobiProgram'
+] as const
+type ShaderType = typeof ShaderTypes[number]
+export type ProgramRecord = { [key in ShaderType]: ShaderProgram }
+
+export type FBORecord = {
+    particlesFBO: DoubleFBO,
+    pressureFBO: DoubleFBO,
+    divergenceFBO: DoubleFBO,
+    velocityFBO: DoubleFBO,
+    dyeFBO: DoubleFBO,
+
+    prevParticlesFBO: FBO,
+    temp: FBO,
+}
 
 export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye'
 
@@ -17,7 +50,6 @@ export type SimulationSettings = {
     advectionDissipation: number,
 
     // force settings
-    rightClick: boolean,
     impulseDirection: [number, number],
     impulsePosition: [number, number],
     impulseRadius: number,
@@ -29,6 +61,9 @@ export type SimulationSettings = {
     particleTrailSize: number,
     particleSize: number,
     advectBackward: boolean,
+
+    // dye settings
+    addDye: boolean,
 
     // image
     image: HTMLImageElement | null,

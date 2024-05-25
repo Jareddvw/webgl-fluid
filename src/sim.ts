@@ -124,7 +124,6 @@ const render = (now: number) => {
         jacobiIterations,
         gridScale,
         manualBilerp,
-        rightClick,
 
         applyDiffusion,
         diffusionCoefficient,
@@ -141,6 +140,8 @@ const render = (now: number) => {
         impulsePosition,
         impulseRadius,
         impulseMagnitude,
+
+        addDye,
 
         colorMode,
         paused,
@@ -169,7 +170,7 @@ const render = (now: number) => {
         aspectRatio: gl.canvas.width / gl.canvas.height,
         velocity: velocityFBO.readFBO.texture,
     })
-    if (visField === 'dye' && rightClick) {
+    if (visField === 'dye' && addDye) {
         externalForceProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
         externalForceProgram.setFloat('impulseRadius', 0.0005)
         draw(gl, dyeFBO.writeFBO)

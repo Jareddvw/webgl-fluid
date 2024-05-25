@@ -27,8 +27,7 @@ const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
  */
 const settings: SimulationSettings = {
     visField: selectedField.value as VisField,
-    rightClick: false,
-    jacobiIterations: 30,
+    jacobiIterations: 25,
     gridScale: 1,
     manualBilerp: bilerpCheckbox?.checked ?? true,
 
@@ -48,6 +47,7 @@ const settings: SimulationSettings = {
     impulseRadius: 0,
     impulseMagnitude: 0,
 
+    addDye: false,
     image: null,
 
     colorMode: parseInt(colorModeInput.value, 10),
@@ -158,7 +158,7 @@ canvas.addEventListener('contextmenu', (e) => {
 })
 canvas.addEventListener('mousedown', (e) => {
     if (e.button === 2) {
-        settings.rightClick = true
+        settings.addDye = true
     }
     const x = e.clientX / canvas.width
     const y = 1 - e.clientY / canvas.height
@@ -182,8 +182,8 @@ canvas.addEventListener('mousemove', (e) => {
     }
 })
 canvas.addEventListener('mouseup', () => {
-    if (settings.rightClick) {
-        settings.rightClick = false
+    if (settings.addDye) {
+        settings.addDye = false
     }
     mouseDown = false
     settings.impulseMagnitude = 0
