@@ -20,7 +20,10 @@ const fpsDiv = document.getElementById('fps') as HTMLDivElement
 const getFPS = getFpsCallback()
 
 const simulation = new Simulation(canvas, getSettings());
-const render = () => {
+let prev = performance.now();
+const render = (now: number) => {
+    const deltaT = (now - prev) === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
+
     const fps = getFPS();
     const settings = getSettings();
     const { paused, reset, halt } = settings;
@@ -36,7 +39,7 @@ const render = () => {
     }
 
     simulation.updateSettings(getSettings());
-    simulation.step();
+    simulation.step(deltaT);
     requestAnimationFrame(render);
     fpsDiv.innerText = `FPS: ${fps.toFixed(1)}`
 }

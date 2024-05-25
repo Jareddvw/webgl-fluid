@@ -1,7 +1,7 @@
 import { Shader } from "./Shader";
 
 /** A wrapper around the WegGL2 shader program */
-export class ShaderProgram {
+export class Program {
     gl: WebGL2RenderingContext;
     program: WebGLProgram;
     shaders: Shader[];
@@ -79,6 +79,9 @@ export class ShaderProgram {
     setUniforms(uniforms: {[key: string]: any}) {
         let numTextures = 0
         for (const [key, value] of Object.entries(uniforms)) {
+            if (!this.uniforms[key]) {
+                throw new Error(`Uniform '${key}' not found in program:` + JSON.stringify(this.uniforms))
+            }
             if (typeof value === 'number') {
                 this.setFloat(key, value)
             } else if (typeof value === 'boolean') {
@@ -88,13 +91,11 @@ export class ShaderProgram {
                     case 2:
                         this.setVec2(key, value)
                         break
-                    case 3:
-                        throw new Error('Vec3 not supported')
                     case 4:
                         this.setVec4(key, value)
                         break
                     default:
-                        throw new Error('Unsupported array length')
+                        throw new Error(`Unsupported vec length ${value.length} for uniform ${key}`)
                 }
             } else if (value instanceof WebGLTexture) {
                 this.setTexture(key, value, numTextures)

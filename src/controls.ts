@@ -1,6 +1,6 @@
 /** 
  * This file handles the dom elements for controlling the simulation.
- * It creates a SimulationSettings object 
+ * It creates a SimulationSettings object and updates it based on user input.
  */
 
 import { SimulationSettings, VisField } from "./lib/utils/types"

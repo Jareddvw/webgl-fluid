@@ -10,7 +10,6 @@ layout(location=0) in float index;
 
 uniform sampler2D particles;
 uniform vec2 canvasSize;
-uniform float numParticles;
 uniform float pointSize;
 
 out vec2 texCoord;

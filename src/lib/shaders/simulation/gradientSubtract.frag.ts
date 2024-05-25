@@ -10,9 +10,9 @@ in vec2 rightNeighbor;
 in vec2 bottomNeighbor;
 in vec2 leftNeighbor;
 
+uniform float halfrdx;
 uniform sampler2D pressure;
 uniform sampler2D divergentVelocity;
-uniform float halfrdx;
 
 out vec4 color;
 
@@ -25,6 +25,9 @@ void main() {
     vec2 vel = texture(divergentVelocity, texCoord).xy;
 
     vec2 gradient = vec2(pR - pL, pT - pB);
+    if (halfrdx > 0.0) {
+        gradient = halfrdx * vec2(pR - pL, pT - pB);
+    }
 
     color = vec4(vel - gradient, 0.0, 1.0);
 }

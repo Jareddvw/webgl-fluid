@@ -30,11 +30,4 @@ export class DoubleFBO {
     bind() {
         this.writeFBO.bind()
     }
-
-    resize(width: number, height: number) {
-        this.width = width
-        this.height = height
-        this.readFBO.resize(width, height)
-        this.writeFBO.resize(width, height)
-    }
 }

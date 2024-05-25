@@ -14,13 +14,12 @@ import { jacobiFrag } from "../shaders/simulation/jacobi.frag";
 import { passThroughFrag } from "../shaders/simulation/passThrough.frag";
 import { passThroughVert } from "../shaders/simulation/passThrough.vert";
 import { passThroughWithNeightborsVert } from "../shaders/simulation/passThrough5.vert";
-import { redBlackJacobiFrag } from "../shaders/simulation/redBlackJacobi.frag";
-import { velocityToColorFrag } from "../shaders/simulation/velocityToColor.frag";
+import { fieldToColorFrag } from "../shaders/simulation/velocityToColor.frag";
 import { FBORecord, ProgramRecord } from "../utils/types";
 import { DoubleFBO } from "./DoubleFBO";
 import { FBO } from "./FBO";
 import { Shader } from "./Shader";
-import { ShaderProgram } from "./ShaderProgram";
+import { Program } from "./ShaderProgram";
 
 
 /**
@@ -110,46 +109,43 @@ export class Renderer {
 
         // programs
         const fillColorF = new Shader(gl, gl.FRAGMENT_SHADER, fillColorFrag)
-        const fillColorProgram = new ShaderProgram(gl, [passThroughV, fillColorF])
+        const fillColorProgram = new Program(gl, [passThroughV, fillColorF])
 
         const passThroughF = new Shader(gl, gl.FRAGMENT_SHADER, passThroughFrag)
-        const copyProgram = new ShaderProgram(gl, [passThroughV, passThroughF])
+        const copyProgram = new Program(gl, [passThroughV, passThroughF])
 
         const externalForceF = new Shader(gl, gl.FRAGMENT_SHADER, externalForceFrag)
-        const externalForceProgram = new ShaderProgram(gl, [passThrough5V, externalForceF])
+        const externalForceProgram = new Program(gl, [passThrough5V, externalForceF])
 
         const advectionShader = new Shader(gl, gl.FRAGMENT_SHADER, advectFrag)
-        const advectionProgram = new ShaderProgram(gl, [passThrough5V, advectionShader])
+        const advectionProgram = new Program(gl, [passThrough5V, advectionShader])
 
-        const colorFrag = new Shader(gl, gl.FRAGMENT_SHADER, velocityToColorFrag)
-        const colorFieldProgram = new ShaderProgram(gl, [passThrough5V, colorFrag])
+        const colorFrag = new Shader(gl, gl.FRAGMENT_SHADER, fieldToColorFrag)
+        const colorFieldProgram = new Program(gl, [passThrough5V, colorFrag])
 
         const drawParticle = new Shader(gl, gl.FRAGMENT_SHADER, drawParticleFrag)
-        const drawParticleProgram = new ShaderProgram(gl, [particleV, drawParticle])
+        const drawParticleProgram = new Program(gl, [particleV, drawParticle])
 
         const jacobiFragShader = new Shader(gl, gl.FRAGMENT_SHADER, jacobiFrag)
-        const jacobiProgram = new ShaderProgram(gl, [passThrough5V, jacobiFragShader])
+        const jacobiProgram = new Program(gl, [passThrough5V, jacobiFragShader])
 
         const writeParticleFrag = new Shader(gl, gl.FRAGMENT_SHADER, writeParticlesFrag)
-        const writeParticleProgram = new ShaderProgram(gl, [passThrough5V, writeParticleFrag])
+        const writeParticleProgram = new Program(gl, [passThrough5V, writeParticleFrag])
 
         const divergenceFragShader = new Shader(gl, gl.FRAGMENT_SHADER, divergenceFrag)
-        const divergenceProgram = new ShaderProgram(gl, [passThrough5V, divergenceFragShader])
+        const divergenceProgram = new Program(gl, [passThrough5V, divergenceFragShader])
 
         const gradientSubtraction = new Shader(gl, gl.FRAGMENT_SHADER, gradientSubtractFrag)
-        const gradientSubtractionProgram = new ShaderProgram(gl, [passThrough5V, gradientSubtraction])
+        const gradientSubtractionProgram = new Program(gl, [passThrough5V, gradientSubtraction])
 
         const boundaryFragShader = new Shader(gl, gl.FRAGMENT_SHADER, boundaryCondFrag)
-        const boundaryProgram = new ShaderProgram(gl, [boundaryV, boundaryFragShader])
+        const boundaryProgram = new Program(gl, [boundaryV, boundaryFragShader])
 
         const advectParticleFragShader = new Shader(gl, gl.FRAGMENT_SHADER, advectParticleFrag)
-        const advectParticleProgram = new ShaderProgram(gl, [passThrough5V, advectParticleFragShader])
+        const advectParticleProgram = new Program(gl, [passThrough5V, advectParticleFragShader])
 
         const fadeFragShader = new Shader(gl, gl.FRAGMENT_SHADER, fadeFrag)
-        const fadeProgram = new ShaderProgram(gl, [passThrough5V, fadeFragShader])
-
-        const redBlackJacobiFragShader = new Shader(gl, gl.FRAGMENT_SHADER, redBlackJacobiFrag)
-        const redBlackJacobiProgram = new ShaderProgram(gl, [passThrough5V, redBlackJacobiFragShader])
+        const fadeProgram = new Program(gl, [passThrough5V, fadeFragShader])
 
         return {
             // fills the screen with a color
@@ -168,8 +164,6 @@ export class Renderer {
             drawParticleProgram,
             // jacobi iteration
             jacobiProgram,
-            // red-black jacobi iteration
-            redBlackJacobiProgram,
             // divergence of w (divergent velocity field)
             divergenceProgram,
             // calculate grad(P), subtract from w
@@ -220,7 +214,7 @@ export class Renderer {
     public drawParticles(
         particleTexture: WebGLTexture,
         velocityTexture: WebGLTexture,
-        particleProgram: ShaderProgram,
+        particleProgram: Program,
         colorMode: number,
         target: FBO | null,
         particleDensity = 0.1,
@@ -240,7 +234,6 @@ export class Renderer {
             particles: particleTexture,
             velocityTexture,
             canvasSize: [gl.canvas.width, gl.canvas.height],
-            numParticles,
             colorMode,
             pointSize,
         })

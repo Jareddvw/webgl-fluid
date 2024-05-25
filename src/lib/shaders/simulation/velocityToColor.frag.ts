@@ -1,20 +1,21 @@
-/** A shader which takes a velocity field and outputs
- * pretty colors. blue is negative, red is positive.
+/** 
+ * A shader which takes a field and outputs
+ * pretty colors.
  */
-export const velocityToColorFrag = /* glsl */ `#version 300 es
+export const fieldToColorFrag = /* glsl */ `#version 300 es
 precision highp float;
 precision highp sampler2D;
 
 in vec2 texCoord;
 
-uniform sampler2D velocityTexture;
+uniform sampler2D field;
 uniform float colorMode;
 
 out vec4 color;
 
 // Color the velocity field based on the magnitude (absolute value) of the velocity.
 void main() {
-    vec4 v = texture(velocityTexture, texCoord);
+    vec4 v = texture(field, texCoord);
     float speed = length(v.xy);
 
     if (colorMode == 0.0) {

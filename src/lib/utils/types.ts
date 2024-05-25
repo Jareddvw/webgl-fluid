@@ -1,6 +1,6 @@
 import { DoubleFBO } from "../classes/DoubleFBO"
 import { FBO } from "../classes/FBO"
-import { ShaderProgram } from "../classes/ShaderProgram"
+import { Program } from "../classes/ShaderProgram"
 
 
 const ShaderTypes = [
@@ -17,10 +17,9 @@ const ShaderTypes = [
     'boundaryProgram', 
     'advectParticleProgram', 
     'fadeProgram', 
-    'redBlackJacobiProgram'
 ] as const
 type ShaderType = typeof ShaderTypes[number]
-export type ProgramRecord = { [key in ShaderType]: ShaderProgram }
+export type ProgramRecord = { [key in ShaderType]: Program }
 
 export type FBORecord = {
     particlesFBO: DoubleFBO,

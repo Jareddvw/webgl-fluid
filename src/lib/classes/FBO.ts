@@ -31,7 +31,6 @@ export class FBO {
         if (!texture) {
             throw new Error('Error creating texture')
         }
-        // console.log(getRGBFormat(gl))
         gl.bindTexture(gl.TEXTURE_2D, texture)
         const color_buffer_float = gl.getExtension('EXT_color_buffer_float')
         if (!color_buffer_float) {
@@ -59,18 +58,5 @@ export class FBO {
     bind() {
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.framebuffer)
         this.gl.viewport(0, 0, this.width, this.height)
-    }
-
-    /** 
-     * Resizes the textures
-     * and copies the old texture data to the new texture
-     */
-    resize(width: number, height: number) {
-        // TODO: copy the old texture data to the new texture with a copy shader
-        const { gl, texture } = this
-        gl.bindTexture(gl.TEXTURE_2D, texture)
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-        this.width = width
-        this.height = height
     }
 }

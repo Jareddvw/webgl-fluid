@@ -40,10 +40,10 @@ export class Simulation {
             impulseMagnitude,
             impulseRadius,
             aspectRatio: gl.canvas.width / gl.canvas.height,
-            velocity: velocityFBO.readFBO.texture,
+            velocityTexture: velocityFBO.readFBO.texture,
         })
         if (visField === 'dye' && addDye) {
-            externalForceProgram.setTexture('velocity', dyeFBO.readFBO.texture, 0)
+            externalForceProgram.setTexture('velocityTexture', dyeFBO.readFBO.texture, 0)
             externalForceProgram.setFloat('impulseRadius', 0.0005)
             renderer.drawQuad(dyeFBO.writeFBO)
             dyeFBO.swap()
@@ -192,7 +192,9 @@ export class Simulation {
         gradientSubtractionProgram.setUniforms({
             pressure: pressureFBO.readFBO.texture,
             divergentVelocity: velocityFBO.readFBO.texture,
-            halfrdx: 0.5 / gridScale,
+            // excluding the halfrdx term for now because it looks better (though not as accurate I guess)
+            // halfrdx: 0.5 / gridScale,
+            halfrdx: 0,
             texelDims,
         })
         renderer.drawQuad(velocityFBO.writeFBO)
@@ -249,7 +251,7 @@ export class Simulation {
 
     private drawToScreen() {
         // draw the simulation to the screen
-        const { renderer, settings } = this;
+        const { renderer, settings, texelDims } = this;
         const { colorFieldProgram } = renderer.getPrograms();
         const { dyeFBO, velocityFBO } = renderer.getFBOs();
         const { visField, colorMode } = settings;
@@ -271,6 +273,7 @@ export class Simulation {
         colorFieldProgram.use()
         colorFieldProgram.setUniforms({
             field: fieldTexture,
+            texelDims,
             colorMode,
         })
         renderer.drawQuad(null)
@@ -296,10 +299,12 @@ export class Simulation {
         // reset the particles
         const { renderer } = this;
         const { particlesFBO, prevParticlesFBO } = renderer.getFBOs();
-        const { writeParticleProgram } = renderer.getPrograms();
+        const { writeParticleProgram, fillColorProgram } = renderer.getPrograms();
         writeParticleProgram.use()
         renderer.drawQuad(particlesFBO.writeFBO)
         particlesFBO.swap()
+        fillColorProgram.use()
+        fillColorProgram.setVec4('color', colors.black)
         renderer.drawQuad(prevParticlesFBO)
     }
 
@@ -327,7 +332,9 @@ export class Simulation {
         }
     }
 
-    step() {
+    step(dt = this.deltaT) {
+        this.deltaT = dt
+
         this.maybeResize()
         this.applyExternalForce()
         this.advect()
