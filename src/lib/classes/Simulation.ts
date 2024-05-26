@@ -5,6 +5,7 @@ import { Renderer } from "./Renderer";
 export class Simulation {
     private texelDims = [0, 0];
 
+    private canvas: HTMLCanvasElement;
     private gl: WebGL2RenderingContext;
     private renderer: Renderer;
 
@@ -17,6 +18,7 @@ export class Simulation {
             throw new Error('WebGL2 not supported');
         }
         this.gl = gl;
+        this.canvas = canvas;
         this.texelDims = [1 / canvas.width, 1 / canvas.height];
         this.settings = settings;
 
@@ -254,7 +256,7 @@ export class Simulation {
         const { renderer, settings, texelDims } = this;
         const { colorFieldProgram } = renderer.getPrograms();
         const { dyeFBO, velocityFBO } = renderer.getFBOs();
-        const { visField, colorMode } = settings;
+        const { visField, colorMode, screenshot } = settings;
         let fieldTexture: WebGLTexture | null = null
         switch (visField) {
             case 'particles':
@@ -277,6 +279,26 @@ export class Simulation {
             colorMode,
         })
         renderer.drawQuad(null)
+        if (screenshot) {
+            console.log('screenshotting')
+            this.canvas.toBlob((blob: Blob | null) => {
+                const saveBlob = (function(b) {
+                    const a = document.createElement('a');
+                    document.body.appendChild(a);
+                    a.style.display = 'none';
+                    return function saveData(blob: Blob, fileName: string) {
+                        const url = window.URL.createObjectURL(blob);
+                        a.href = url;
+                        a.download = fileName;
+                        a.click();
+                    };
+                }());
+                if (blob === null) {
+                    throw new Error('Error creating screenshot blob')
+                }
+                saveBlob(blob, 'screenshot.png')
+            })
+        }
     }
 
     halt() {

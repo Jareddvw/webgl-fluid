@@ -66,6 +66,8 @@ export type SimulationSettings = {
 
     // image
     image: HTMLImageElement | null,
+    // whether to screenshot the next frame
+    screenshot: boolean,
 
     // global settings
     colorMode: ColorMode,

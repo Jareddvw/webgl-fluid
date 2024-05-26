@@ -19,6 +19,18 @@ if (!canvas) {
 const fpsDiv = document.getElementById('fps') as HTMLDivElement
 const getFPS = getFpsCallback()
 
+const saveBlob = function() {
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+    return function saveData(blob: Blob, fileName: string) {
+       const url = window.URL.createObjectURL(blob);
+       a.href = url;
+       a.download = fileName;
+       a.click();
+    };
+}()
+
 const simulation = new Simulation(canvas, getSettings());
 let prev = performance.now();
 const render = (now: number) => {
@@ -40,6 +52,17 @@ const render = (now: number) => {
 
     simulation.updateSettings(getSettings());
     simulation.step(deltaT);
+    
+    if (settings.screenshot) {
+        canvas.toBlob(blob => {
+            if (!blob) {
+                throw new Error('Could not take screenshot')
+            }
+            saveBlob(blob, 'screenshot.png');
+        })
+        setSettings({ screenshot: false });
+    }
+
     requestAnimationFrame(render);
     fpsDiv.innerText = `FPS: ${fps.toFixed(1)}`
 }

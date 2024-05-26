@@ -48,6 +48,7 @@ const settings: SimulationSettings = {
 
     addDye: false,
     image: null,
+    screenshot: false,
 
     colorMode: parseInt(colorModeInput.value, 10),
     paused: false,
@@ -246,5 +247,20 @@ collapseButton.addEventListener('click', onCollapseOrExpand)
 collapseButton.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
         onCollapseOrExpand()
+    }
+})
+
+let screenShotKeyDown = false
+document.addEventListener('keydown', (e) => {
+    if (e.key === 's' && !screenShotKeyDown) {
+        console.log('screenshot')
+        settings.screenshot = true
+        screenShotKeyDown = true
+    }
+})
+document.addEventListener('keyup', () => {
+    if (screenShotKeyDown) {
+        settings.screenshot = false
+        screenShotKeyDown = false
     }
 })
