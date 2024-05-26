@@ -213,7 +213,6 @@ export class Renderer {
      */
     public drawParticles(
         particleTexture: WebGLTexture,
-        velocityTexture: WebGLTexture,
         particleProgram: Program,
         colorMode: number,
         target: FBO | null,
@@ -232,7 +231,6 @@ export class Renderer {
         particleProgram.use()
         particleProgram.setUniforms({
             particles: particleTexture,
-            velocityTexture,
             canvasSize: [gl.canvas.width, gl.canvas.height],
             colorMode,
             pointSize,

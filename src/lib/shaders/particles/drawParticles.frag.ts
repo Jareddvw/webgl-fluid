@@ -9,9 +9,7 @@ precision highp sampler2D;
 in vec2 texCoord;
 in float indexOut;
 
-uniform sampler2D velocityTexture;
 uniform vec2 canvasSize;
-// which colors to use
 uniform float colorMode;
 
 out vec4 fragColor;
@@ -27,7 +25,6 @@ vec2 decode(float index, vec2 canvasSize) {
 
 // Color the particle based on the velocity at its position.
 void main() {
-    vec2 velocity = texture(velocityTexture, texCoord).xy;
     if (colorMode == 0.0) {
         // rainbow
         vec2 initialPos = decode(indexOut, canvasSize);
@@ -43,7 +40,7 @@ void main() {
         vec2 gb = abs(initialPos.xy);
         fragColor = vec4(0.0, gb, 1.0);
     } else if (colorMode == 3.0) {
-        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        fragColor = vec4(0.3, 0.3, 0.3, 1.0);
     }
 }
 `;

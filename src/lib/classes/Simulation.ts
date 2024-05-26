@@ -27,10 +27,8 @@ export class Simulation {
     private applyExternalForce() {
         // apply external forces to the simulation, also maybe dye
         const { settings, renderer, gl } = this;
-        const fbos = renderer.getFBOs();
-        const programs = renderer.getPrograms();
-        const { externalForceProgram } = programs;
-        const { velocityFBO, dyeFBO } = fbos;
+        const { externalForceProgram } = renderer.getPrograms();
+        const { velocityFBO, dyeFBO } = renderer.getFBOs();
         const { visField, addDye, impulseDirection, impulsePosition, impulseMagnitude, impulseRadius } = settings;
         // External force
         externalForceProgram.use()
@@ -56,10 +54,8 @@ export class Simulation {
 
     private advect() {
         const { settings, texelDims, deltaT, renderer } = this;
-        const fbos = renderer.getFBOs();
-        const programs = renderer.getPrograms();
-        const { advectionProgram, advectParticleProgram } = programs;
-        const { particlesFBO, velocityFBO, dyeFBO } = fbos;
+        const { advectionProgram, advectParticleProgram } = renderer.getPrograms();
+        const { particlesFBO, velocityFBO, dyeFBO } = renderer.getFBOs();
         const { visField, gridScale, manualBilerp, advectionDissipation, regenerateParticles } = settings;
         advectionProgram.use()
         advectionProgram.setUniforms({
@@ -101,10 +97,8 @@ export class Simulation {
         }
         // apply diffusion to the simulation
         const { settings, renderer, texelDims, deltaT } = this;
-        const fbos = renderer.getFBOs();
-        const programs = renderer.getPrograms();
-        const { jacobiProgram, copyProgram } = programs;
-        const { velocityFBO, temp } = fbos;
+        const { jacobiProgram, copyProgram } = renderer.getPrograms();
+        const { velocityFBO, temp } = renderer.getFBOs();
         const { gridScale, diffusionCoefficient, jacobiIterations } = settings;
         // viscous diffusion with jacobi method
         const alpha = (gridScale * gridScale) / (diffusionCoefficient * deltaT)
@@ -128,10 +122,8 @@ export class Simulation {
     private applyBoundary(type: 'velocity' | 'pressure') {
         // apply boundary conditions to the simulation.
         const { renderer, texelDims } = this;
-        const fbos = renderer.getFBOs();
-        const programs = renderer.getPrograms();
-        const { copyProgram, boundaryProgram } = programs;
-        const { velocityFBO, pressureFBO, temp } = fbos;
+        const { copyProgram, boundaryProgram } = renderer.getPrograms();
+        const { velocityFBO, pressureFBO, temp } = renderer.getFBOs();
         if (type === 'velocity') {
             copyProgram.use()
             copyProgram.setTexture('tex', velocityFBO.readFBO.texture, 0)
@@ -206,7 +198,7 @@ export class Simulation {
         // draw the particles to the screen
         const { renderer, settings } = this;
         const { drawParticleProgram, fadeProgram, copyProgram, fillColorProgram } = renderer.getPrograms();
-        const { particlesFBO, velocityFBO, prevParticlesFBO, temp } = renderer.getFBOs();
+        const { particlesFBO, prevParticlesFBO, temp } = renderer.getFBOs();
         const { colorMode, showParticleTrails, particleDensity, particleSize, particleTrailSize } = settings;
         const bgColor = (
             colorMode === ColorMode.Pink ? 
@@ -216,7 +208,6 @@ export class Simulation {
         if (showParticleTrails) {
             renderer.drawParticles(
                 particlesFBO.readFBO.texture,
-                velocityFBO.readFBO.texture,
                 drawParticleProgram,
                 colorMode,
                 prevParticlesFBO,
@@ -240,7 +231,6 @@ export class Simulation {
             renderer.drawQuad(null)
             renderer.drawParticles(
                 particlesFBO.readFBO.texture,
-                velocityFBO.readFBO.texture,
                 drawParticleProgram,
                 colorMode,
                 null,
@@ -254,7 +244,7 @@ export class Simulation {
         // draw the simulation to the screen
         const { renderer, settings, texelDims } = this;
         const { colorFieldProgram } = renderer.getPrograms();
-        const { dyeFBO, velocityFBO } = renderer.getFBOs();
+        const { dyeFBO, velocityFBO, pressureFBO } = renderer.getFBOs();
         const { visField, colorMode } = settings;
         let fieldTexture: WebGLTexture | null = null
         switch (visField) {
@@ -268,7 +258,7 @@ export class Simulation {
                 fieldTexture = velocityFBO.readFBO.texture
                 break
             case 'pressure':
-                fieldTexture = renderer.getFBOs().pressureFBO.readFBO.texture
+                fieldTexture = pressureFBO.readFBO.texture
                 break
         }
         colorFieldProgram.use()
