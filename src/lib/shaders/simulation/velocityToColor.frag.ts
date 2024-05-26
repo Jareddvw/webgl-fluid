@@ -25,7 +25,7 @@ void main() {
         color = vec4(abs(v.xy), blue, 1.0);
     } else if (colorMode == 1.0) {
         // black and white
-        color = vec4(speed, speed, speed, 1.0);
+        color = vec4(speed * 2.0, speed * 2.0, speed * 2.0, 1.0);
     } else if (colorMode == 2.0) {
         // blue-green
         color = vec4(0.0, abs(v.y), abs(v.x), 1.0);

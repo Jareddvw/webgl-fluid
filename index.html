@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Waves</title>
   </head>
@@ -12,24 +15,24 @@
       <div id="fps"></div>
       <div class="input">field 
         <select id="field">
-          <option value="velocity" selected>velocity</option>
+          <option value="velocity">velocity</option>
           <option value="pressure">pressure</option>
-          <option value="particles">particles 🫣</option>
+          <option value="particles" selected>particles 🫨</option>
           <option value="dye">dye 🎨</option>
         </select>
       </div>
       <div class="dye text">right-click or double-tap to add dye</div>
       <div class="input">color mode 
         <select id="colorMode">
-          <option value="0">rainbow</option>
-          <option value="1" selected>smoke</option>
+          <option value="0" selected>rainbow</option>
+          <option value="1">smoke</option>
           <option value="2">earth</option>
           <option value="3">silk</option>
         </select>
       </div>
-      <div class="input particles">particle density <input type="range" value="100" min="1" max="100" id="particleDensity"></div>
-      <div class="input particles">point size <input type="number" value="1" min="1" max="5" id="pointSize"></div>
-      <div class="input particles">particle trails <input type="checkbox" id="particleLines"></div>
+      <div class="input particles">particle density <input type="range" value="10" min="1" max="100" id="particleDensity"></div>
+      <div class="input particles">point size <input type="number" value="2" min="1" max="5" id="pointSize"></div>
+      <div class="input particles">particle trails <input type="checkbox" id="particleLines" checked></div>
       <div class="input particles trails">trail length <input type="range" value="80" min="70" max="100" id="particleTrailSize"></div>
       <div class="input" id="timeSettings">
         <input type="button" value="halt" id="halt">
