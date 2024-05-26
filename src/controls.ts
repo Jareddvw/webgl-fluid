@@ -159,7 +159,6 @@ particleLinesCheckbox.addEventListener('change', () => {
 //     reader.readAsDataURL(file)
 // })
 
-let mouseDown = false
 let lastMousePos = [0, 0]
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault()
@@ -179,7 +178,6 @@ const onMouseDown = (e: PointerEvent) => {
     }
     const x = (e as MouseEvent).clientX / canvas.width
     const y = 1 - (e as MouseEvent).clientY / canvas.height
-    mouseDown = true
     lastMousePos = [x, y]
     canvas.setPointerCapture((e as PointerEvent).pointerId)
     lastClicked = performance.now()
@@ -204,7 +202,6 @@ const onMouseUp = (e: PointerEvent) => {
     if (settings.addDye) {
         settings.addDye = false
     }
-    mouseDown = false
     settings.impulseMagnitude = 0
     settings.impulseRadius = 0
     settings.impulseDirection = [0, 0]
