@@ -17,6 +17,8 @@ pnpm run dev
 <img src="https://github.com/Jareddvw/webgl-fluid/assets/91432012/4cc8127a-a60f-42e1-bc81-47365082e6bd" alt="velocity" width="300" />
 <img src="https://github.com/Jareddvw/webgl-fluid/assets/91432012/d58f3804-ac9f-4e0a-a8f0-6fe5238ce438" alt="velocity" width="300" />
 <img src="https://github.com/Jareddvw/webgl-fluid/assets/91432012/d5cc3ab1-043b-4df7-850d-e177e1117328" alt="velocity" width="300" />
+<img src="https://github.com/Jareddvw/webgl-fluid/assets/91432012/990de413-106d-4a8d-974b-af5b97ce8c68" alt="velocity" width="300" />
+
 
 ### References
 -  Harris, M. J. (2004). GPU GEMS Chapter 38, Fast Fluid Dynamics Simulation on the GPU. [link](https://developer.nvidia.com/gpugems/gpugems/part-vi-beyond-triangles/chapter-38-fast-fluid-dynamics-simulation-gpu)
