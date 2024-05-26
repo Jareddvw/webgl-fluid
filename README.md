@@ -1,4 +1,5 @@
 ## WebGL fluid simulation
+This is a 2D fluid simulation written in TS using WebGL2. You can play around with it [here](https://jareddvw.github.io/webgl-fluid/).
 - Drag your mouse around to add external forces. 
 - When visualizing dye: either right-click or double-click then drag to add dye.
 - press S to take a screenshot.
