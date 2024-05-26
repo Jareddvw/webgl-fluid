@@ -11,16 +11,15 @@ const canvas = document.getElementById('waves') as HTMLCanvasElement
 
 const selectedField = document.getElementById('field') as HTMLSelectElement
 const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
-const pauseCheckbox = document.getElementById('pause') as HTMLInputElement
 const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
-const backwardsAdvectionCheckbox = document.getElementById('advectBackwards') as HTMLInputElement
 const particleDensityInput = document.getElementById('particleDensity') as HTMLInputElement
 const particleTrailSizeInput = document.getElementById('particleTrailSize') as HTMLInputElement
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
+
 const resetButton = document.getElementById('reset') as HTMLButtonElement
+const pauseButton = document.getElementById('pause') as HTMLButtonElement
 const haltButton = document.getElementById('halt') as HTMLButtonElement
-const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
 
 /**
  * The simulation settings.
@@ -38,7 +37,7 @@ const settings: SimulationSettings = {
     
     particleDensity: parseFloat(particleDensityInput.value) / 100.0,
     showParticleTrails: particleLinesCheckbox.checked,
-    advectBackward: backwardsAdvectionCheckbox.checked,
+    advectBackward: false,
     particleTrailSize: parseFloat(particleTrailSizeInput.value) / 100.0,
     particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
 
@@ -51,7 +50,7 @@ const settings: SimulationSettings = {
     image: null,
 
     colorMode: parseInt(colorModeInput.value, 10),
-    paused: pauseCheckbox.checked,
+    paused: false,
     reset: false,
     halt: false,
 }
@@ -94,15 +93,30 @@ const showOrHideParticleInput = () => {
 }
 showOrHideParticleInput()
 
+const showOrHideDyeText = () => {
+    if (selectedField.value === 'dye') {
+        showOrHideElementsByClassname('dye', true)
+    } else {
+        showOrHideElementsByClassname('dye', false)
+    }
+}
+showOrHideDyeText()
+
 resetButton.addEventListener('click', () => {
     settings.reset = true
 })
 haltButton.addEventListener('click', () => {
     settings.halt = true
 })
-backwardsAdvectionCheckbox.addEventListener('change', () => {
-    settings.advectBackward = backwardsAdvectionCheckbox.checked
+pauseButton.addEventListener('click', () => {
+    settings.paused = !settings.paused
+    if (settings.paused) {
+        pauseButton.value = 'play'
+    } else {
+        pauseButton.value = 'pause'
+    }
 })
+
 particleDensityInput.addEventListener('change', () => {
     settings.particleDensity = parseFloat(particleDensityInput.value) / 100.0
 })
@@ -115,16 +129,10 @@ pointSizeInput.addEventListener('change', () => {
 colorModeInput.addEventListener('change', () => {
     settings.colorMode = clamp(parseInt(colorModeInput.value, 10), 0, 3)
 })
-pauseCheckbox.addEventListener('change', () => {
-    if (pauseCheckbox.checked) {
-        settings.paused = true
-    } else {
-        settings.paused = false
-    }
-})
 selectedField.addEventListener('change', () => {
     settings.visField = selectedField.value as VisField
     showOrHideParticleInput()
+    showOrHideDyeText()
 })
 particleLinesCheckbox.addEventListener('change', () => {
     if (particleLinesCheckbox.checked) {
@@ -135,38 +143,49 @@ particleLinesCheckbox.addEventListener('change', () => {
     showOrHideTrailsInput()
 })
 
-imageUpload.addEventListener('change', (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) {
-        return
-    }
-    const reader = new FileReader()
-    reader.onload = (e) => {
-        const image = new Image()
-        image.src = e.target?.result as string
-        image.onload = () => {
-            settings.image = image
-        }
-    }
-    reader.readAsDataURL(file)
-})
+// imageUpload.addEventListener('change', (e) => {
+//     const file = (e.target as HTMLInputElement).files?.[0]
+//     if (!file) {
+//         return
+//     }
+//     const reader = new FileReader()
+//     reader.onload = (e) => {
+//         const image = new Image()
+//         image.src = e.target?.result as string
+//         image.onload = () => {
+//             settings.image = image
+//         }
+//     }
+//     reader.readAsDataURL(file)
+// })
 
 let mouseDown = false
 let lastMousePos = [0, 0]
 canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault()
 })
-canvas.addEventListener('mousedown', (e) => {
-    if (e.button === 2) {
+
+let lastClicked = 0
+const onMouseDown = (e: PointerEvent) => {
+    const doubleClick = performance.now() - lastClicked < 300
+    if (
+        (e instanceof MouseEvent && e.button === 2) ||
+        doubleClick
+    ) {
         settings.addDye = true
+        if (doubleClick) {
+            e.preventDefault()
+        }
     }
-    const x = e.clientX / canvas.width
-    const y = 1 - e.clientY / canvas.height
+    const x = (e as MouseEvent).clientX / canvas.width
+    const y = 1 - (e as MouseEvent).clientY / canvas.height
     mouseDown = true
     lastMousePos = [x, y]
-})
-canvas.addEventListener('mousemove', (e) => {
-    if (mouseDown) {
+    canvas.setPointerCapture((e as PointerEvent).pointerId)
+    lastClicked = performance.now()
+}
+const onMouseMove = (e: PointerEvent) => {
+    if (canvas.hasPointerCapture(e.pointerId)) {
         const x = e.clientX / canvas.width
         const y = 1 - e.clientY / canvas.height
         const diff = [x - lastMousePos[0], y - lastMousePos[1]]
@@ -178,10 +197,10 @@ canvas.addEventListener('mousemove', (e) => {
         lastMousePos =  [x, y]
         settings.impulsePosition = [x, y]
         settings.impulseMagnitude = 1
-        settings.impulseRadius = .0001
+        settings.impulseRadius = 0.0001
     }
-})
-canvas.addEventListener('mouseup', () => {
+}
+const onMouseUp = (e: PointerEvent) => {
     if (settings.addDye) {
         settings.addDye = false
     }
@@ -189,7 +208,13 @@ canvas.addEventListener('mouseup', () => {
     settings.impulseMagnitude = 0
     settings.impulseRadius = 0
     settings.impulseDirection = [0, 0]
-})
+    canvas.releasePointerCapture(e.pointerId)
+}
+
+canvas.addEventListener('pointerdown', onMouseDown)
+canvas.addEventListener('pointermove', onMouseMove)
+canvas.addEventListener('pointerup', onMouseUp)
+canvas.addEventListener('pointerleave', onMouseUp)
 
 /**
  * Get the current settings.
@@ -202,3 +227,27 @@ export const getSettings = () => settings
 export const setSettings = (newSettings: Partial<SimulationSettings>) => {
     Object.assign(settings, newSettings)
 }
+
+
+
+const collapseButton = document.getElementById('collapseButton') as HTMLButtonElement
+const controls = document.getElementById('controls') as HTMLDivElement
+
+
+const onCollapseOrExpand = () => {
+    if (controls.classList.contains('collapsed')) {
+        controls.classList.remove('collapsed')
+        collapseButton.classList.add('expanded')
+        controls.style.transform = 'translateY(0)'
+    } else {
+        controls.classList.add('collapsed')
+        collapseButton.classList.remove('expanded')
+        controls.style.transform = 'translateY(-100%)'
+    }
+}
+collapseButton.addEventListener('click', onCollapseOrExpand)
+collapseButton.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        onCollapseOrExpand()
+    }
+})

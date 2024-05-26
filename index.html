@@ -8,7 +8,7 @@
   </head>
   <body>
     <canvas id="waves"></canvas>
-    <div id="info">
+    <div id="controls">
       <div id="fps"></div>
       <div class="input">field 
         <select id="field">
@@ -18,23 +18,30 @@
           <option value="dye">dye 🎨</option>
         </select>
       </div>
-      <!-- <div class="input">manual bilerp <input type="checkbox" id="bilerp" checked></div> -->
-      <div class="input">pause <input type="checkbox" id="pause"></div>
+      <div class="dye text">right-click or double-tap to add dye</div>
       <div class="input">color mode 
         <select id="colorMode">
           <option value="0">rainbow</option>
-          <option value="1">smoke</option>
+          <option value="1" selected>smoke</option>
           <option value="2">earth</option>
           <option value="3">silk</option>
         </select>
       </div>
-      <div class="input particles">particle density <input type="range" value="10" min="1" max="100" id="particleDensity"></div>
+      <div class="input particles">particle density <input type="range" value="100" min="1" max="100" id="particleDensity"></div>
       <div class="input particles">point size <input type="number" value="1" min="1" max="5" id="pointSize"></div>
-      <div class="input particles">backwards particles <input type="checkbox" id="advectBackwards"></div>
       <div class="input particles">particle trails <input type="checkbox" id="particleLines"></div>
       <div class="input particles trails">trail length <input type="range" value="80" min="70" max="100" id="particleTrailSize"></div>
-      <div class="input"><input type="button" value="halt" id="halt"><input type="button" value="reset" id="reset"></div>
-      <div class="input">image upload <input type="file" id="imageUpload"></div>
+      <div class="input" id="timeSettings">
+        <input type="button" value="halt" id="halt">
+        <input type="button" value="pause" id="pause">
+        <input type="button" value="reset" id="reset">
+      </div>
+      <!-- svg icon for expand/collapse -->
+      <div class="svg expanded" id="collapseButton" role="button" tabindex="0">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z" fill="white"/>
+        </svg>
+      </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
