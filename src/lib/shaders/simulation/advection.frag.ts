@@ -36,7 +36,7 @@ void main() {
     vec4 v = texture(velocity, coords);
 
     // Combine for x - u(x, t) * dt
-    vec2 newPos = coords - v.xy * dt * gridScale;
+    vec2 newPos = coords - v.xy * dt * (1.0 / gridScale);
 
     if (useBilerp) {
         // return q(x - u(x, t) * dt, t)

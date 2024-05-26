@@ -14,7 +14,7 @@ import { jacobiFrag } from "../shaders/simulation/jacobi.frag";
 import { passThroughFrag } from "../shaders/simulation/passThrough.frag";
 import { passThroughVert } from "../shaders/simulation/passThrough.vert";
 import { passThroughWithNeightborsVert } from "../shaders/simulation/passThrough5.vert";
-import { fieldToColorFrag } from "../shaders/simulation/velocityToColor.frag";
+import { fieldToColorFrag } from "../shaders/simulation/fieldToColor.frag";
 import { FBORecord, ProgramRecord } from "../utils/types";
 import { DoubleFBO } from "./DoubleFBO";
 import { FBO } from "./FBO";

@@ -60,7 +60,7 @@ export class Simulation {
         const programs = renderer.getPrograms();
         const { advectionProgram, advectParticleProgram } = programs;
         const { particlesFBO, velocityFBO, dyeFBO } = fbos;
-        const { visField, gridScale, manualBilerp, advectionDissipation } = settings;
+        const { visField, gridScale, manualBilerp, advectionDissipation, regenerateParticles } = settings;
         advectionProgram.use()
         advectionProgram.setUniforms({
             dt: deltaT,
@@ -88,6 +88,7 @@ export class Simulation {
                 texelDims,
                 velocity: velocityFBO.readFBO.texture,
                 quantity: particlesFBO.readFBO.texture,
+                regenerateParticles,
             })
             renderer.drawQuad(particlesFBO.writeFBO)
             particlesFBO.swap()
@@ -193,8 +194,8 @@ export class Simulation {
             pressure: pressureFBO.readFBO.texture,
             divergentVelocity: velocityFBO.readFBO.texture,
             // excluding the halfrdx term for now because it looks better (though not as accurate I guess)
-            // halfrdx: 0.5 / gridScale,
-            halfrdx: 0,
+            halfrdx: 0.5 / gridScale,
+            // halfrdx: 0,
             texelDims,
         })
         renderer.drawQuad(velocityFBO.writeFBO)

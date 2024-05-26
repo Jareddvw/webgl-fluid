@@ -60,6 +60,7 @@ export type SimulationSettings = {
     particleTrailSize: number,
     particleSize: number,
     advectBackward: boolean,
+    regenerateParticles: boolean, // whether to randomly reset particles to their original position
 
     // dye settings
     addDye: boolean,

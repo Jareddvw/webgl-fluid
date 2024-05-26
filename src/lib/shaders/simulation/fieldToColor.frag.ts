@@ -21,8 +21,8 @@ void main() {
     if (colorMode == 0.0) {
         // rainbow
         float blue = max(-v.x, -v.y);
-        blue = max(blue, 0.0);
-        color = vec4(abs(v.xy), blue, 1.0);
+        blue = max(blue, 0.0) * 3.0;
+        color = vec4(abs(v.xy) * 3.0, blue, 1.0);
     } else if (colorMode == 1.0) {
         // black and white
         color = vec4(speed * 2.0, speed * 2.0, speed * 2.0, 1.0);

@@ -43,11 +43,7 @@ void main() {
         vec2 gb = abs(initialPos.xy);
         fragColor = vec4(0.0, gb, 1.0);
     } else if (colorMode == 3.0) {
-        float speed = length(velocity);
-        float r = 1.0 - speed * 2.0;
-        float b = 1.0 - speed * 4.0;
-        fragColor = vec4(r, 0.1, b, 1.0);
-
+        fragColor = vec4(0.0, 0.0, 0.0, 1.0);
     }
 }
 `;

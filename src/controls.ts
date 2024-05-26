@@ -14,6 +14,7 @@ const bilerpCheckbox = document.getElementById('bilerp') as HTMLInputElement
 const particleLinesCheckbox = document.getElementById('particleLines') as HTMLInputElement
 const particleDensityInput = document.getElementById('particleDensity') as HTMLInputElement
 const particleTrailSizeInput = document.getElementById('particleTrailSize') as HTMLInputElement
+const regenerateParticlesCheckbox = document.getElementById('regenerateParticles') as HTMLInputElement
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 
@@ -27,7 +28,7 @@ const haltButton = document.getElementById('halt') as HTMLButtonElement
 const settings: SimulationSettings = {
     visField: selectedField.value as VisField,
     jacobiIterations: 25,
-    gridScale: 1,
+    gridScale: 0.5,
     manualBilerp: bilerpCheckbox?.checked ?? true,
 
     applyDiffusion: false,
@@ -40,6 +41,7 @@ const settings: SimulationSettings = {
     advectBackward: false,
     particleTrailSize: parseFloat(particleTrailSizeInput.value) / 100.0,
     particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
+    regenerateParticles: regenerateParticlesCheckbox.checked,
 
     impulseDirection: [0, 0],
     impulsePosition: [0, 0],
@@ -142,6 +144,9 @@ particleLinesCheckbox.addEventListener('change', () => {
         settings.showParticleTrails = false
     }
     showOrHideTrailsInput()
+})
+regenerateParticlesCheckbox.addEventListener('change', () => {
+    settings.regenerateParticles = regenerateParticlesCheckbox.checked
 })
 
 // imageUpload.addEventListener('change', (e) => {
