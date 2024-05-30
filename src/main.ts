@@ -65,5 +65,12 @@ const render = (now: number) => {
 
     requestAnimationFrame(render);
     fpsDiv.innerText = `FPS: ${fps.toFixed(1)}`
+    if (fps < 50) {
+        setSettings({ jacobiIterations: 15 })
+    } else if (fps < 60) {
+        setSettings({ jacobiIterations: 20 })
+    } else {
+        setSettings({ jacobiIterations: 25 })
+    }
 }
 requestAnimationFrame(render);
