@@ -115,3 +115,8 @@ svg {
   color: white;
   cursor: pointer;
 }
+
+a {
+  color: white;
+  text-decoration: underline;
+}
