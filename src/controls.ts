@@ -182,16 +182,16 @@ const onMouseDown = (e: PointerEvent) => {
             e.preventDefault()
         }
     }
-    const x = (e as MouseEvent).clientX / canvas.width
-    const y = 1 - (e as MouseEvent).clientY / canvas.height
+    const x = (e as MouseEvent).offsetX / canvas.width
+    const y = 1 - (e as MouseEvent).offsetY / canvas.height
     lastMousePos = [x, y]
     canvas.setPointerCapture((e as PointerEvent).pointerId)
     lastClicked = performance.now()
 }
 const onMouseMove = (e: PointerEvent) => {
     if (canvas.hasPointerCapture(e.pointerId)) {
-        const x = e.clientX / canvas.width
-        const y = 1 - e.clientY / canvas.height
+        const x = e.offsetX / canvas.width
+        const y = 1 - e.offsetY / canvas.height
         const diff = [x - lastMousePos[0], y - lastMousePos[1]]
         // force direction is the direction of the mouse movement
         // normalize diff for direction
