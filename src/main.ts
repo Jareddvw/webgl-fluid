@@ -45,6 +45,7 @@ const simulation = new Simulation(canvas, getSettings());
 let prev = performance.now();
 const render = (now: number) => {
     const deltaT = (now - prev) === 0 ? 0.016 : Math.min((now - prev) / 1000, 0.033)
+    prev = now;
 
     const fps = getFPS();
     const settings = getSettings();
