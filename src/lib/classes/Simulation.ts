@@ -30,16 +30,23 @@ export class Simulation {
         const { settings, renderer, gl } = this;
         const { externalForceProgram } = renderer.getPrograms();
         const { velocityFBO, dyeFBO } = renderer.getFBOs();
-        const { visField, addDye, impulseDirection, impulsePosition, impulseMagnitude, impulseRadius } = settings;
+        const { visField, addDye, externalForces } = settings;
         // External force
         externalForceProgram.use()
         externalForceProgram.setUniforms({
-            impulseDirection,
-            impulsePosition,
-            impulseMagnitude,
-            impulseRadius,
+            impulseDirections: externalForces.map(f => f.impulseDirection),
+            impulsePositions: externalForces.map(f => f.impulsePosition),
+            impulseMagnitudes: externalForces.map(f => f.impulseMagnitude),
+            impulseRadii: externalForces.map(f => f.impulseRadius),
+            impulseCount: externalForces.length,
             aspectRatio: gl.canvas.width / gl.canvas.height,
             velocityTexture: velocityFBO.readFBO.texture,
+        }, {
+            impulseDirections: 'vec2Array',
+            impulsePositions: 'vec2Array',
+            impulseMagnitudes: 'floatArray',
+            impulseRadii: 'floatArray',
+            impulseCount: 'int',
         })
         if (visField === 'dye' && addDye) {
             externalForceProgram.setTexture('velocityTexture', dyeFBO.readFBO.texture, 0)
@@ -380,5 +387,17 @@ export class Simulation {
             this.imageTexture = makeTextureFromImage(this.gl, newSettings.image)
         }
         this.settings = { ...this.settings, ...newSettings };
+    }
+
+    getFBOs() {
+        return this.renderer.getFBOs()
+    }
+
+    getPrograms() {
+        return this.renderer.getPrograms()
+    }
+
+    getSettings() {
+        return this.settings
     }
 }

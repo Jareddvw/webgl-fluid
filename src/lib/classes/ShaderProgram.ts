@@ -34,11 +34,12 @@ export class Program {
                 throw new Error('Error getting uniform info')
             }
             const { name } = activeUniform
+            const baseName = name.replace(/\[.*?\]$/, '')
             const location = this.gl.getUniformLocation(this.program, name)
             if (!location) {
                 throw new Error('Error getting uniform location')
             }
-            this.uniforms[name] = location
+            this.uniforms[baseName] = location
         }
     }
 
@@ -76,17 +77,41 @@ export class Program {
         this.gl.uniform1i(this.uniforms[name], index)
     }
 
-    setUniforms(uniforms: {[key: string]: any}) {
+    setFloatArray(name: string, value: number[]) {
+        this.gl.uniform1fv(this.uniforms[name], new Float32Array(value))
+    }
+
+    setVec2Array(name: string, value: [number, number][]) {
+        const flatArray = new Float32Array(value.flat());
+        this.gl.uniform2fv(this.uniforms[name], flatArray);
+    }
+
+    setInt(name: string, value: number) {
+        this.gl.uniform1i(this.uniforms[name], value)
+    }
+
+    setUniforms(uniforms: {[key: string]: any}, types?: {[key: string]: string}) {
         let numTextures = 0
         for (const [key, value] of Object.entries(uniforms)) {
+            const type = types?.[key]
             if (!this.uniforms[key]) {
                 throw new Error(`Uniform '${key}' not found in program:` + JSON.stringify(this.uniforms))
             }
-            if (typeof value === 'number') {
+            if (type === 'int') {
+                this.setInt(key, value)
+            } else if (typeof value === 'number' || type === 'float') {
                 this.setFloat(key, value)
-            } else if (typeof value === 'boolean') {
+            } else if (typeof value === 'boolean' || type === 'bool') {
                 this.setBool(key, value)
             } else if (Array.isArray(value)) {
+                if (type === 'floatArray') {
+                    this.setFloatArray(key, value)
+                    continue
+                }
+                if (type === 'vec2Array') {
+                    this.setVec2Array(key, value)
+                    continue
+                }
                 switch (value.length) {
                     case 2:
                         this.setVec2(key, value)

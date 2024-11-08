@@ -45,10 +45,14 @@ const settings: SimulationSettings = {
     particleSize: clamp(parseFloat(pointSizeInput.value), 1, 5),
     regenerateParticles: regenerateParticlesCheckbox.checked,
 
-    impulseDirection: [0, 0],
-    impulsePosition: [0, 0],
-    impulseRadius: 0,
-    impulseMagnitude: 0,
+    externalForces: [
+        {
+            impulseDirection: [0, 0],
+            impulsePosition: [0, 0],
+            impulseRadius: 0,
+            impulseMagnitude: 0,
+        }
+    ],
 
     addDye: false,
     image: null,
@@ -229,21 +233,30 @@ const onMouseMove = (e: PointerEvent) => {
         // force direction is the direction of the mouse movement
         // normalize diff for direction
         const len = Math.sqrt(diff[0] * diff[0] + diff[1] * diff[1])
-        const normalizedDiff = (len === 0 || len < 0.002) ? [0, 0] : [diff[0] / len, diff[1] / len]
-        settings.impulseDirection = normalizedDiff as [number, number]
+        const normalizedDiff: [number, number] = (len === 0 || len < 0.002) ? [0, 0] : [diff[0] / len, diff[1] / len]
         lastMousePos =  [x, y]
-        settings.impulsePosition = [x, y]
-        settings.impulseMagnitude = 1
-        settings.impulseRadius = 0.0001
+        settings.externalForces = [
+            {
+                impulseDirection: normalizedDiff,
+                impulsePosition: [x, y],
+                impulseRadius: 0.0001,
+                impulseMagnitude: 1,
+            },
+        ]
     }
 }
 const onMouseUp = (e: PointerEvent) => {
     if (settings.addDye) {
         settings.addDye = false
     }
-    settings.impulseMagnitude = 0
-    settings.impulseRadius = 0
-    settings.impulseDirection = [0, 0]
+    settings.externalForces = [
+        {
+            impulseDirection: [0, 0],
+            impulsePosition: [0, 0],
+            impulseRadius: 0,
+            impulseMagnitude: 0,
+        }
+    ]
     canvas.releasePointerCapture(e.pointerId)
 }
 

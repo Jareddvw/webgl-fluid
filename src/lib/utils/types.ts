@@ -35,6 +35,13 @@ export type FBORecord = {
 
 export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye' | 'image'
 
+export type ExternalForce = {
+    impulseDirection: [number, number],
+    impulsePosition: [number, number],
+    impulseRadius: number,
+    impulseMagnitude: number,
+}
+
 export type SimulationSettings = {
     // fluid settings
     visField: VisField,
@@ -50,10 +57,7 @@ export type SimulationSettings = {
     advectionDissipation: number,
 
     // force settings
-    impulseDirection: [number, number],
-    impulsePosition: [number, number],
-    impulseRadius: number,
-    impulseMagnitude: number,
+    externalForces: ExternalForce[],
 
     // particle settings
     particleDensity: number,
