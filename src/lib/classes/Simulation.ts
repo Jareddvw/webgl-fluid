@@ -196,9 +196,7 @@ export class Simulation {
         gradientSubtractionProgram.setUniforms({
             pressure: pressureFBO.readFBO.texture,
             divergentVelocity: velocityFBO.readFBO.texture,
-            // excluding the halfrdx term for now because it looks better (though not as accurate I guess)
             halfrdx: 0.5 / gridScale,
-            // halfrdx: 0,
             texelDims,
         })
         renderer.drawQuad(velocityFBO.writeFBO)
@@ -376,12 +374,16 @@ export class Simulation {
 
         this.maybeResize()
         this.applyExternalForce()
+        this.settings.callbacks.postForce.forEach(f => f())
         this.advect()
+        this.settings.callbacks.postAdvect.forEach(f => f())
         this.applyDiffusion()
         this.applyBoundary('velocity')
         this.removeDivergence()
+        this.settings.callbacks.postJacobi.forEach(f => f())
         this.maybeDrawImage()
         this.drawToScreen()
+        this.settings.callbacks.postColor.forEach(f => f())
     }
 
     updateSettings(newSettings: Partial<SimulationSettings>) {

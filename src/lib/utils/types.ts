@@ -48,6 +48,15 @@ export type ExternalForce = {
     impulseType: ImpulseType,
 }
 
+type Callback = () => void
+
+export type SimulationCallbackMap = {
+    postForce: Callback[],
+    postAdvect: Callback[],
+    postJacobi: Callback[],
+    postColor: Callback[],
+}
+
 export type SimulationSettings = {
     // fluid settings
     visField: VisField,
@@ -90,6 +99,9 @@ export type SimulationSettings = {
     reset: boolean,
     // reset the velocity/pressure fields in the next frame
     halt: boolean,
+
+    // Callbacks -- advanced settings to let the user call functions at different stages in the simulation
+    callbacks: SimulationCallbackMap,
 }
 
 export enum ColorMode {

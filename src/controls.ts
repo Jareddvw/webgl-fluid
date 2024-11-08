@@ -65,6 +65,13 @@ const settings: SimulationSettings = {
     paused: false,
     reset: false,
     halt: false,
+
+    callbacks: {
+        postForce: [],
+        postAdvect: [],
+        postJacobi: [],
+        postColor: [],
+    },
 }
 
 const getColorMode = () => parseInt(colorModeInput.value, 10)
