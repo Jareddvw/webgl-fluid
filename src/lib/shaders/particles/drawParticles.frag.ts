@@ -11,6 +11,7 @@ in float indexOut;
 
 uniform vec2 canvasSize;
 uniform float colorMode;
+uniform sampler2D image;
 
 out vec4 fragColor;
 
@@ -25,6 +26,12 @@ vec2 decode(float index, vec2 canvasSize) {
 
 // Color the particle based on the velocity at its position.
 void main() {
+    if (colorMode == 5.0) {
+        vec2 initialPos = decode(indexOut, canvasSize);
+        fragColor = texture(image, initialPos);
+        return;
+    }
+
     if (colorMode == 0.0) {
         // rainbow
         vec2 initialPos = decode(indexOut, canvasSize);

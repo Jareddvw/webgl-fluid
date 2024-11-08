@@ -9,6 +9,7 @@ export class Simulation {
     private renderer: Renderer;
 
     private settings: SimulationSettings;
+    private imageTexture: WebGLTexture | null = null;
     private deltaT = 1 / 60;
 
     constructor(canvas: HTMLCanvasElement, settings: SimulationSettings) {
@@ -213,7 +214,8 @@ export class Simulation {
                 colorMode,
                 prevParticlesFBO,
                 particleDensity,
-                particleSize
+                particleSize,
+                this.imageTexture
             )
             copyProgram.use()
             copyProgram.setTexture('tex', prevParticlesFBO.texture, 0)
@@ -236,7 +238,8 @@ export class Simulation {
                 colorMode,
                 null,
                 particleDensity,
-                particleSize
+                particleSize,
+                this.imageTexture
             )
         }
     }
@@ -245,22 +248,20 @@ export class Simulation {
      * If the user has uploaded an image, draw it to the image FBO.
      */
     private maybeDrawImage() {
-        const { settings, renderer, gl } = this;
+        const { settings, renderer } = this;
         const { copyProgram } = renderer.getPrograms();
         const imageFBO = renderer.getFBOs().imageFBO;
         const { image, drawImage, visField } = settings;
 
-        if (!image || !drawImage || visField !== 'image') {
+        const imageTexture = this.imageTexture;
+        if (!image || !drawImage || visField !== 'image' || !imageTexture) {
             return;
         };
 
-        const imageTexture = makeTextureFromImage(gl, image);
         copyProgram.use();
         copyProgram.setTexture('tex', imageTexture, 0);
         renderer.drawQuad(imageFBO.writeFBO);
         imageFBO.swap();
-        // cleanup
-        gl.deleteTexture(imageTexture);
     }
 
     private drawToScreen() {
@@ -375,6 +376,9 @@ export class Simulation {
     }
 
     updateSettings(newSettings: Partial<SimulationSettings>) {
+        if (newSettings.image && newSettings.image !== this.settings.image) {
+            this.imageTexture = makeTextureFromImage(this.gl, newSettings.image)
+        }
         this.settings = { ...this.settings, ...newSettings };
     }
 }

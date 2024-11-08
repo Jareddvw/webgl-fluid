@@ -88,4 +88,6 @@ export enum ColorMode {
     BlueGreen = 2,
     Pink = 3,
     PassThrough = 4,
+    // Only used for particles. Whether to color the particles based on an image.
+    Image = 5,
 }

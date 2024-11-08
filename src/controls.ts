@@ -3,7 +3,7 @@
  * It creates a SimulationSettings object and updates it based on user input.
  */
 
-import { SimulationSettings, VisField } from "./lib/utils/types"
+import { ColorMode, SimulationSettings, VisField } from "./lib/utils/types"
 import { clamp } from "./lib/utils/utils"
 import "./style.css"
 
@@ -294,6 +294,16 @@ document.addEventListener('keydown', (e) => {
         console.log('screenshot')
         settings.screenshot = true
         screenShotKeyDown = true
+    }
+
+    if (e.key === 'q') {
+        // secret option. If the user is viewing particles and has an image uploaded
+        // then they can view the particles colored by the image
+        if (settings.visField === 'particles' && settings.image && settings.colorMode !== ColorMode.Image) {
+            settings.colorMode = ColorMode.Image
+        } else if (settings.colorMode === ColorMode.Image) {
+            settings.colorMode = ColorMode.Rainbow
+        }
     }
 })
 document.addEventListener('keyup', () => {

@@ -220,6 +220,7 @@ export class Renderer {
         target: FBO | null,
         particleDensity = 0.1,
         pointSize = 1,
+        image: WebGLTexture | null = null
     ) {
         if (target) {
             target.bind()
@@ -236,6 +237,7 @@ export class Renderer {
             canvasSize: [gl.canvas.width, gl.canvas.height],
             colorMode,
             pointSize,
+            image,
         })
 
         gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer)
