@@ -74,7 +74,7 @@ export type SimulationSettings = {
     screenshot: boolean,
 
     // global settings
-    colorMode: ColorMode,
+    colorMode: ColorMode, // ColorMode.Image is only used for particles where image is non-null.
     paused: boolean,
     // reset the entire simulation in the next frame
     reset: boolean,

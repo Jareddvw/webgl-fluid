@@ -26,12 +26,6 @@ vec2 decode(float index, vec2 canvasSize) {
 
 // Color the particle based on the velocity at its position.
 void main() {
-    if (colorMode == 5.0) {
-        vec2 initialPos = decode(indexOut, canvasSize);
-        fragColor = texture(image, initialPos);
-        return;
-    }
-
     if (colorMode == 0.0) {
         // rainbow
         vec2 initialPos = decode(indexOut, canvasSize);
@@ -48,6 +42,11 @@ void main() {
         fragColor = vec4(0.0, gb, 1.0);
     } else if (colorMode == 3.0) {
         fragColor = vec4(0.3, 0.3, 0.3, 1.0);
+    } else if (colorMode == 4.0) {
+        fragColor = vec4(1.0);
+    } else if (colorMode == 5.0) {
+        vec2 initialPos = decode(indexOut, canvasSize);
+        fragColor = texture(image, initialPos);
     }
 }
 `;
