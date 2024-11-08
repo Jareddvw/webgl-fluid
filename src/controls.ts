@@ -339,16 +339,6 @@ document.addEventListener('keydown', (e) => {
         settings.screenshot = true
         screenShotKeyDown = true
     }
-
-    if (e.key === 'q') {
-        // secret option. If the user is viewing particles and has an image uploaded
-        // then they can view the particles colored by the image
-        if (settings.visField === 'particles' && settings.image && settings.colorMode !== ColorMode.Image) {
-            settings.colorMode = ColorMode.Image
-        } else if (settings.colorMode === ColorMode.Image) {
-            settings.colorMode = ColorMode.Rainbow
-        }
-    }
 })
 document.addEventListener('keyup', () => {
     if (screenShotKeyDown) {
