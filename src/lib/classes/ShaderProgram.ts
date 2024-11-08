@@ -90,6 +90,10 @@ export class Program {
         this.gl.uniform1i(this.uniforms[name], value)
     }
 
+    setIntArray(name: string, value: number[]) {
+        this.gl.uniform1iv(this.uniforms[name], new Int32Array(value))
+    }
+
     setUniforms(uniforms: {[key: string]: any}, types?: {[key: string]: string}) {
         let numTextures = 0
         for (const [key, value] of Object.entries(uniforms)) {
@@ -99,6 +103,8 @@ export class Program {
             }
             if (type === 'int') {
                 this.setInt(key, value)
+            } else if (type === 'intArray') {
+                this.setIntArray(key, value)
             } else if (typeof value === 'number' || type === 'float') {
                 this.setFloat(key, value)
             } else if (typeof value === 'boolean' || type === 'bool') {

@@ -24,6 +24,7 @@ export const colors = {
     white: [1.0, 1.0, 1.0, 1.0],
     purple: [0.6, 0.1, 0.4, 1.0],
     pink: [1.0, 0.0, 1.0, 1.0],
+    deepNavy: [0.039, 0.098, 0.196, 1.0], // New color for silk mode
 }
 
 export const clamp = (val: number, min: number, max: number) => {

@@ -35,11 +35,17 @@ export type FBORecord = {
 
 export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye' | 'image'
 
+export enum ImpulseType {
+    GaussianSplat = 0,
+    ConstantForce = 1,
+}
+
 export type ExternalForce = {
     impulseDirection: [number, number],
     impulsePosition: [number, number],
     impulseRadius: number,
     impulseMagnitude: number,
+    impulseType: ImpulseType,
 }
 
 export type SimulationSettings = {
@@ -90,7 +96,7 @@ export enum ColorMode {
     Rainbow = 0,
     BlackAndWhite = 1,
     BlueGreen = 2,
-    Pink = 3,
+    Silk = 3,
     PassThrough = 4,
     // Only used for particles. Whether to color the particles based on an image.
     Image = 5,

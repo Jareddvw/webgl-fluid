@@ -41,12 +41,14 @@ export class Simulation {
             impulseCount: externalForces.length,
             aspectRatio: gl.canvas.width / gl.canvas.height,
             velocityTexture: velocityFBO.readFBO.texture,
+            impulseTypes: externalForces.map(f => f.impulseType),
         }, {
             impulseDirections: 'vec2Array',
             impulsePositions: 'vec2Array',
             impulseMagnitudes: 'floatArray',
             impulseRadii: 'floatArray',
             impulseCount: 'int',
+            impulseTypes: 'intArray',
         })
         if (visField === 'dye' && addDye) {
             externalForceProgram.setTexture('velocityTexture', dyeFBO.readFBO.texture, 0)
@@ -210,8 +212,8 @@ export class Simulation {
         const { particlesFBO, prevParticlesFBO, temp } = renderer.getFBOs();
         const { colorMode, showParticleTrails, particleDensity, particleSize, particleTrailSize } = settings;
         const bgColor = (
-            colorMode === ColorMode.Pink ? 
-                colors.pink :
+            colorMode === ColorMode.Silk ? 
+                colors.deepNavy :
                 colors.black
         )
         if (showParticleTrails) {
@@ -258,10 +260,10 @@ export class Simulation {
         const { settings, renderer } = this;
         const { copyProgram } = renderer.getPrograms();
         const imageFBO = renderer.getFBOs().imageFBO;
-        const { image, drawImage, visField } = settings;
+        const { image, drawImage } = settings;
 
         const imageTexture = this.imageTexture;
-        if (!image || !drawImage || visField !== 'image' || !imageTexture) {
+        if (!image || !drawImage || !imageTexture) {
             return;
         };
 

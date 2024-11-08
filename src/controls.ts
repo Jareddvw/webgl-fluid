@@ -3,7 +3,7 @@
  * It creates a SimulationSettings object and updates it based on user input.
  */
 
-import { ColorMode, SimulationSettings, VisField } from "./lib/utils/types"
+import { ColorMode, ImpulseType, SimulationSettings, VisField } from "./lib/utils/types"
 import { clamp } from "./lib/utils/utils"
 import "./style.css"
 
@@ -19,6 +19,7 @@ const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
 const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
 const uploadButton = document.getElementById('uploadButton') as HTMLButtonElement
+const showParticlesForImageCheckbox = document.getElementById('imageParticlesCheckbox') as HTMLInputElement
 
 const resetButton = document.getElementById('reset') as HTMLButtonElement
 const pauseButton = document.getElementById('pause') as HTMLButtonElement
@@ -51,6 +52,7 @@ const settings: SimulationSettings = {
             impulsePosition: [0, 0],
             impulseRadius: 0,
             impulseMagnitude: 0,
+            impulseType: ImpulseType.GaussianSplat,
         }
     ],
 
@@ -64,6 +66,8 @@ const settings: SimulationSettings = {
     reset: false,
     halt: false,
 }
+
+const getColorMode = () => parseInt(colorModeInput.value, 10)
 
 const hideElem = (element: HTMLElement) => {
     element.classList.add('hidden')
@@ -85,7 +89,7 @@ const showOrHideElementsByClassname = (className: string, show: boolean) => {
 }
 
 const showOrHideTrailsInput = () => {
-    if (particleLinesCheckbox.checked && selectedField.value === 'particles') {
+    if (particleLinesCheckbox.checked && settings.visField === 'particles') {
         showOrHideElementsByClassname('trails', true)
     } else {
         showOrHideElementsByClassname('trails', false)
@@ -94,7 +98,7 @@ const showOrHideTrailsInput = () => {
 showOrHideTrailsInput()
 
 const showOrHideParticleInput = () => {
-    if (selectedField.value === 'particles') {
+    if (settings.visField === 'particles') {
         showOrHideElementsByClassname('particles', true)
     } else {
         showOrHideElementsByClassname('particles', false)
@@ -112,19 +116,41 @@ const showOrHideDyeText = () => {
 }
 showOrHideDyeText()
 
+const handleShowOrHideParticlesForImage = () => {
+    if (selectedField.value === 'image') {
+        if (showParticlesForImageCheckbox.checked) {
+            settings.colorMode = ColorMode.Image
+            settings.visField = 'particles'
+        } else {
+            settings.colorMode = getColorMode()
+            settings.visField = 'image'
+        }
+        showOrHideParticleInput()
+    } else {
+        if (settings.colorMode === ColorMode.Image) {
+            settings.colorMode = getColorMode()
+        }
+    }
+}
+
 const showOrHideImageInput = () => {
     if (selectedField.value === 'image') {
         showOrHideElementsByClassname('image', true)
         showOrHideElementsByClassname('colorMode', false)
+        handleShowOrHideParticlesForImage()
     } else {
         showOrHideElementsByClassname('image', false)
         showOrHideElementsByClassname('colorMode', true)
+        handleShowOrHideParticlesForImage()
     }
 }
 showOrHideImageInput()
 
 resetButton.addEventListener('click', () => {
     settings.reset = true
+    requestAnimationFrame(() => {
+        settings.drawImage = true
+    })
 })
 haltButton.addEventListener('click', () => {
     settings.halt = true
@@ -148,7 +174,7 @@ pointSizeInput.addEventListener('change', () => {
     settings.particleSize = clamp(parseFloat(pointSizeInput.value), 1, 5)
 })
 colorModeInput.addEventListener('change', () => {
-    settings.colorMode = clamp(parseInt(colorModeInput.value, 10), 0, 3)
+    settings.colorMode = clamp(getColorMode(), 0, 3)
 })
 selectedField.addEventListener('change', () => {
     settings.visField = selectedField.value as VisField
@@ -166,6 +192,9 @@ particleLinesCheckbox.addEventListener('change', () => {
 })
 regenerateParticlesCheckbox.addEventListener('change', () => {
     settings.regenerateParticles = regenerateParticlesCheckbox.checked
+})
+showParticlesForImageCheckbox.addEventListener('change', () => {
+    handleShowOrHideParticlesForImage()
 })
 
 uploadButton.addEventListener('click', () => {
@@ -241,6 +270,7 @@ const onMouseMove = (e: PointerEvent) => {
                 impulsePosition: [x, y],
                 impulseRadius: 0.0001,
                 impulseMagnitude: 1,
+                impulseType: ImpulseType.GaussianSplat,
             },
         ]
     }
@@ -255,6 +285,7 @@ const onMouseUp = (e: PointerEvent) => {
             impulsePosition: [0, 0],
             impulseRadius: 0,
             impulseMagnitude: 0,
+            impulseType: ImpulseType.GaussianSplat,
         }
     ]
     canvas.releasePointerCapture(e.pointerId)
