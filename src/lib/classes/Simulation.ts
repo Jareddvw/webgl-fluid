@@ -1,5 +1,5 @@
 import { ColorMode, SimulationSettings } from "../utils/types";
-import { colors } from "../utils/utils";
+import { colors, makeTextureFromImage } from "../utils/utils";
 import { Renderer } from "./Renderer";
 
 export class Simulation {
@@ -55,7 +55,7 @@ export class Simulation {
     private advect() {
         const { settings, texelDims, deltaT, renderer } = this;
         const { advectionProgram, advectParticleProgram } = renderer.getPrograms();
-        const { particlesFBO, velocityFBO, dyeFBO } = renderer.getFBOs();
+        const { particlesFBO, velocityFBO, dyeFBO, imageFBO } = renderer.getFBOs();
         const { visField, gridScale, manualBilerp, advectionDissipation, regenerateParticles } = settings;
         advectionProgram.use()
         advectionProgram.setUniforms({
@@ -66,10 +66,11 @@ export class Simulation {
             velocity: velocityFBO.readFBO.texture,
             dissipation: advectionDissipation,
         })
-        if (visField === 'dye') {
-            advectionProgram.setTexture('quantity', dyeFBO.readFBO.texture, 1)
-            renderer.drawQuad(dyeFBO.writeFBO)
-            dyeFBO.swap()
+        if (visField === 'dye' || visField === 'image') {
+            const fbo = visField === 'dye' ? dyeFBO : imageFBO
+            advectionProgram.setTexture('quantity', fbo.readFBO.texture, 1)
+            renderer.drawQuad(fbo.writeFBO)
+            fbo.swap()
         }
         advectionProgram.setTexture('quantity', velocityFBO.readFBO.texture, 1)
         renderer.drawQuad(velocityFBO.writeFBO)
@@ -240,34 +241,60 @@ export class Simulation {
         }
     }
 
+    /**
+     * If the user has uploaded an image, draw it to the image FBO.
+     */
+    private maybeDrawImage() {
+        const { settings, renderer, gl } = this;
+        const { copyProgram } = renderer.getPrograms();
+        const imageFBO = renderer.getFBOs().imageFBO;
+        const { image, drawImage, visField } = settings;
+
+        if (!image || !drawImage || visField !== 'image') {
+            return;
+        };
+
+        const imageTexture = makeTextureFromImage(gl, image);
+        copyProgram.use();
+        copyProgram.setTexture('tex', imageTexture, 0);
+        renderer.drawQuad(imageFBO.writeFBO);
+        imageFBO.swap();
+        // cleanup
+        gl.deleteTexture(imageTexture);
+    }
+
     private drawToScreen() {
         // draw the simulation to the screen
         const { renderer, settings, texelDims } = this;
         const { colorFieldProgram } = renderer.getPrograms();
-        const { dyeFBO, velocityFBO, pressureFBO } = renderer.getFBOs();
-        const { visField, colorMode } = settings;
-        let fieldTexture: WebGLTexture | null = null
+        const { dyeFBO, velocityFBO, pressureFBO, imageFBO } = renderer.getFBOs();
+        const { visField, colorMode: externalColorMode } = settings;
+        let fieldTexture: WebGLTexture | null = null;
+        const colorMode = visField === 'image' ? ColorMode.PassThrough : externalColorMode
         switch (visField) {
             case 'particles':
-                this.drawParticles()
-                return
+                this.drawParticles();
+                return;
             case 'dye':
-                fieldTexture = dyeFBO.readFBO.texture
-                break
+                fieldTexture = dyeFBO.readFBO.texture;
+                break;
             case 'velocity':
-                fieldTexture = velocityFBO.readFBO.texture
-                break
+                fieldTexture = velocityFBO.readFBO.texture;
+                break;
             case 'pressure':
-                fieldTexture = pressureFBO.readFBO.texture
-                break
+                fieldTexture = pressureFBO.readFBO.texture;
+                break;
+            case 'image':
+                fieldTexture = imageFBO.readFBO.texture;
+                break;
         }
-        colorFieldProgram.use()
+        colorFieldProgram.use();
         colorFieldProgram.setUniforms({
             field: fieldTexture,
             texelDims,
             colorMode,
-        })
-        renderer.drawQuad(null)
+        });
+        renderer.drawQuad(null);
     }
 
     halt() {
@@ -310,11 +337,22 @@ export class Simulation {
         dyeFBO.swap()
     }
 
+    resetImage() {
+        const { renderer } = this;
+        const { imageFBO } = renderer.getFBOs();
+        const { fillColorProgram } = renderer.getPrograms();
+        fillColorProgram.use()
+        fillColorProgram.setVec4('color', colors.black)
+        renderer.drawQuad(imageFBO.writeFBO)
+        imageFBO.swap()
+    }
+
     resetAll() {
         // reset the entire simulation
         this.halt()
         this.resetParticles()
         this.resetDye()
+        this.resetImage()
     }
 
     maybeResize() {
@@ -332,6 +370,7 @@ export class Simulation {
         this.applyDiffusion()
         this.applyBoundary('velocity')
         this.removeDivergence()
+        this.maybeDrawImage()
         this.drawToScreen()
     }
 

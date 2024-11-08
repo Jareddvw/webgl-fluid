@@ -17,6 +17,8 @@ const particleTrailSizeInput = document.getElementById('particleTrailSize') as H
 const regenerateParticlesCheckbox = document.getElementById('regenerateParticles') as HTMLInputElement
 const pointSizeInput = document.getElementById('pointSize') as HTMLInputElement
 const colorModeInput = document.getElementById('colorMode') as HTMLInputElement
+const imageUpload = document.getElementById('imageUpload') as HTMLInputElement
+const uploadButton = document.getElementById('uploadButton') as HTMLButtonElement
 
 const resetButton = document.getElementById('reset') as HTMLButtonElement
 const pauseButton = document.getElementById('pause') as HTMLButtonElement
@@ -50,6 +52,7 @@ const settings: SimulationSettings = {
 
     addDye: false,
     image: null,
+    drawImage: false,
     screenshot: false,
 
     colorMode: parseInt(colorModeInput.value, 10),
@@ -105,6 +108,17 @@ const showOrHideDyeText = () => {
 }
 showOrHideDyeText()
 
+const showOrHideImageInput = () => {
+    if (selectedField.value === 'image') {
+        showOrHideElementsByClassname('image', true)
+        showOrHideElementsByClassname('colorMode', false)
+    } else {
+        showOrHideElementsByClassname('image', false)
+        showOrHideElementsByClassname('colorMode', true)
+    }
+}
+showOrHideImageInput()
+
 resetButton.addEventListener('click', () => {
     settings.reset = true
 })
@@ -136,6 +150,7 @@ selectedField.addEventListener('change', () => {
     settings.visField = selectedField.value as VisField
     showOrHideParticleInput()
     showOrHideDyeText()
+    showOrHideImageInput()
 })
 particleLinesCheckbox.addEventListener('change', () => {
     if (particleLinesCheckbox.checked) {
@@ -149,21 +164,39 @@ regenerateParticlesCheckbox.addEventListener('change', () => {
     settings.regenerateParticles = regenerateParticlesCheckbox.checked
 })
 
-// imageUpload.addEventListener('change', (e) => {
-//     const file = (e.target as HTMLInputElement).files?.[0]
-//     if (!file) {
-//         return
-//     }
-//     const reader = new FileReader()
-//     reader.onload = (e) => {
-//         const image = new Image()
-//         image.src = e.target?.result as string
-//         image.onload = () => {
-//             settings.image = image
-//         }
-//     }
-//     reader.readAsDataURL(file)
-// })
+uploadButton.addEventListener('click', () => {
+    imageUpload.click();
+});
+
+imageUpload.addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0]
+    if (!file) {
+        return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+        const image = new Image()
+        image.src = e.target?.result as string
+        image.onload = () => {
+            settings.image = image
+            settings.drawImage = true
+            addImageDiv()
+        }
+    }
+    reader.readAsDataURL(file)
+})
+
+// add or update div with image name and 'reapply' button if the image has been uploaded
+const addImageDiv = () => {
+    const imageName = imageUpload.files?.[0]?.name ?? 'no image'
+    const imageDiv = document.getElementById('imageDiv') as HTMLDivElement
+    imageDiv.innerHTML = `image: ${imageName} <input type="button" value="reapply" id="reapplyButton">`
+
+    const reapplyButton = document.getElementById('reapplyButton') as HTMLButtonElement
+    reapplyButton.addEventListener('click', () => {
+        settings.drawImage = true
+    })
+}
 
 let lastMousePos = [0, 0]
 canvas.addEventListener('contextmenu', (e) => {

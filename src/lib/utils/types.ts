@@ -27,12 +27,13 @@ export type FBORecord = {
     divergenceFBO: DoubleFBO,
     velocityFBO: DoubleFBO,
     dyeFBO: DoubleFBO,
+    imageFBO: DoubleFBO,
 
     prevParticlesFBO: FBO,
     temp: FBO,
 }
 
-export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye'
+export type VisField = 'velocity' | 'pressure' | 'particles' | 'dye' | 'image'
 
 export type SimulationSettings = {
     // fluid settings
@@ -65,8 +66,10 @@ export type SimulationSettings = {
     // dye settings
     addDye: boolean,
 
-    // image
+    // the image to draw
     image: HTMLImageElement | null,
+    // whether to draw the image to the image FBO in the next frame. Needs to be manually set to false afterwards
+    drawImage: boolean,
     // whether to screenshot the next frame
     screenshot: boolean,
 
@@ -84,4 +87,5 @@ export enum ColorMode {
     BlackAndWhite = 1,
     BlueGreen = 2,
     Pink = 3,
+    PassThrough = 4,
 }

@@ -2,6 +2,7 @@
 export const passThroughFrag = /*glsl*/ `#version 300 es
 
 precision highp float;
+precision highp sampler2D;
 
 in vec2 texCoord;
 uniform sampler2D tex;

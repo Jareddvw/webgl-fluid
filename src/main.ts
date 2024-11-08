@@ -61,8 +61,12 @@ const render = (now: number) => {
         setSettings({ reset: false });
     }
 
-    simulation.updateSettings(getSettings());
+    const settingsPreStep = getSettings();
+    simulation.updateSettings(settingsPreStep);
     simulation.step(deltaT);
+    if (settingsPreStep.drawImage) {
+        setSettings({ drawImage: false });
+    }
     
     if (settings.screenshot) {
         canvas.toBlob(blob => {

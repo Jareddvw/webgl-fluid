@@ -91,8 +91,10 @@ export class Renderer {
             divergenceFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
             velocityFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
             dyeFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
+            imageFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
+
             prevParticlesFBO: new FBO(gl, gl.canvas.width, gl.canvas.height),
-            temp: new FBO(gl, gl.canvas.width, gl.canvas.height)
+            temp: new FBO(gl, gl.canvas.width, gl.canvas.height),
         }
     }
 
@@ -266,6 +268,7 @@ export class Renderer {
             divergenceFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
             velocityFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
             dyeFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
+            imageFBO: new DoubleFBO(gl, gl.canvas.width, gl.canvas.height),
 
             prevParticlesFBO: new FBO(gl, gl.canvas.width, gl.canvas.height),
             temp: new FBO(gl, gl.canvas.width, gl.canvas.height)

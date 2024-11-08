@@ -13,11 +13,10 @@ uniform float colorMode;
 
 out vec4 color;
 
-// Color the velocity field based on the magnitude (absolute value) of the velocity.
 void main() {
     vec4 v = texture(field, texCoord);
+    
     float speed = length(v.xy);
-
     if (colorMode == 0.0) {
         // rainbow
         float blue = max(-v.x, -v.y);
@@ -34,6 +33,9 @@ void main() {
         float r = 1.0 - speed;
         float b = 1.0 - speed * 2.0;
         color = vec4(r, 0.0, b, 1.0);
+    } else if (colorMode == 4.0) {
+        // pass through
+        color = v;
     }
 }
 `;

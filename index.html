@@ -21,10 +21,11 @@
           <option value="pressure">pressure</option>
           <option value="particles" selected>particles 🫨</option>
           <option value="dye">dye 🎨</option>
+          <option value="image">image 🖼️</option>
         </select>
       </div>
       <div class="dye text">right-click or double-tap to add dye</div>
-      <div class="input">color mode 
+      <div class="input colorMode">color mode 
         <select id="colorMode">
           <option value="0" selected>rainbow</option>
           <option value="1">smoke</option>
@@ -32,6 +33,12 @@
           <option value="3">silk</option>
         </select>
       </div>
+      <div class="input image">
+        upload an image
+        <input type="button" value="upload" id="uploadButton">
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+      </div>
+      <div id="imageDiv"></div>
       <div class="input particles">particle density <input type="range" value="10" min="1" max="100" id="particleDensity"></div>
       <div class="input particles">point size <input type="number" value="2" min="1" max="5" id="pointSize"></div>
       <div class="input particles">regenerate particles <input type="checkbox" id="regenerateParticles" checked></div>
