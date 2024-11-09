@@ -1,0 +1,25 @@
+{
+  "name": "@red_j/webgl-fluid-sim",
+  "version": "1.0.3",
+  "description": "WebGL2 fluid simulation library",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "webgl",
+    "fluid",
+    "simulation",
+    "webgl2"
+  ],
+  "author": "Jared Williams",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  }
+}

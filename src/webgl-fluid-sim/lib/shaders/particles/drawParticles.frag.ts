@@ -43,29 +43,18 @@ void main() {
     } else if (colorMode == 3.0) {
         // "silk"
         vec2 initialPos = decode(indexOut, canvasSize);
-        
-        // Pearlescent base
         vec3 pearl = vec3(0.9, 0.9, 0.95);
-        
-        // Soft pastel influence
         vec3 pastel = vec3(1.0, 0.9, 0.95); // Light pink
-        
-        // Champagne influence
         vec3 champagne = vec3(0.98, 0.84, 0.65);
-        
-        // Cool silvery influence
         vec3 silver = vec3(0.8, 0.8, 0.9);
-        
         // Mix colors based on position
         float mixFactor1 = sin(initialPos.x * 6.28318) * 0.5 + 0.5;
         float mixFactor2 = cos(initialPos.y * 6.28318) * 0.5 + 0.5;
         vec3 color = mix(pearl, pastel, mixFactor1);
         color = mix(color, champagne, mixFactor2 * 0.5);
         color = mix(color, silver, (1.0 - mixFactor1) * 0.3);
-        
-        // Add slight iridescence
+        // shimmer
         color += vec3(sin(initialPos.x * 20.0), sin(initialPos.y * 20.0), cos((initialPos.x + initialPos.y) * 20.0)) * 0.05;
-        
         fragColor = vec4(color, 1.0);
     } else if (colorMode == 4.0) {
         // pass through

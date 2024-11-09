@@ -1,6 +1,5 @@
+import { getFpsCallback, Simulation } from "@red_j/webgl-fluid-sim";
 import { getSettings, setSettings } from "./controls";
-import { Simulation } from "./lib/classes/Simulation";
-import { getFpsCallback } from "./lib/utils/utils";
 import "./style.css"
 
 const canvas = document.getElementById("waves") as HTMLCanvasElement;

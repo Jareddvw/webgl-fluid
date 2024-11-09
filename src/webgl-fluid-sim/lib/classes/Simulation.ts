@@ -12,17 +12,49 @@ export class Simulation {
     private imageTexture: WebGLTexture | null = null;
     private deltaT = 1 / 60;
 
-    constructor(canvas: HTMLCanvasElement, settings: SimulationSettings) {
+    constructor(canvas: HTMLCanvasElement, settings: Partial<SimulationSettings> = {}) {
         const gl = canvas.getContext('webgl2');
         if (!gl) {
             throw new Error('WebGL2 not supported');
         }
         this.gl = gl;
         this.texelDims = [1 / canvas.width, 1 / canvas.height];
-        this.settings = settings;
+        
+        // Default settings
+        const defaultSettings: SimulationSettings = {
+            visField: 'velocity',
+            jacobiIterations: 25,
+            gridScale: 0.5,
+            manualBilerp: true,
+            applyDiffusion: false,
+            diffusionCoefficient: 1,
+            advectionDissipation: 0.001,
+            advectBackward: false,
+            regenerateParticles: true,
+            image: null,
+            particleDensity: 0.5,
+            showParticleTrails: true,
+            particleTrailSize: 0.95,
+            particleSize: 1,
+            colorMode: ColorMode.Rainbow,
+            externalForces: [],
+            addDye: false,
+            drawImage: false,
+            screenshot: false,
+            paused: false,
+            reset: false,
+            halt: false,
+            callbacks: {
+                postForce: [],
+                postAdvect: [],
+                postJacobi: [],
+                postColor: [],
+            },
+        };
 
+        this.settings = { ...defaultSettings, ...settings };
         this.renderer = new Renderer(gl);
-        this.resetAll()
+        this.resetAll();
     }
 
     private applyExternalForce() {
@@ -369,8 +401,9 @@ export class Simulation {
         }
     }
 
-    step(dt = this.deltaT) {
-        this.deltaT = dt
+    public step(deltaT: number = this.deltaT): void {
+        this.deltaT = deltaT;
+        if (this.settings.paused) return;
 
         this.maybeResize()
         this.applyExternalForce()
@@ -386,9 +419,9 @@ export class Simulation {
         this.settings.callbacks.postColor.forEach(f => f())
     }
 
-    updateSettings(newSettings: Partial<SimulationSettings>) {
+    public updateSettings(newSettings: Partial<SimulationSettings>): void {
         if (newSettings.image && newSettings.image !== this.settings.image) {
-            this.imageTexture = makeTextureFromImage(this.gl, newSettings.image)
+            this.imageTexture = makeTextureFromImage(this.gl, newSettings.image);
         }
         this.settings = { ...this.settings, ...newSettings };
     }

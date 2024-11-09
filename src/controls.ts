@@ -3,8 +3,7 @@
  * It creates a SimulationSettings object and updates it based on user input.
  */
 
-import { ColorMode, ImpulseType, SimulationSettings, VisField } from "./lib/utils/types"
-import { clamp } from "./lib/utils/utils"
+import { ColorMode, ImpulseType, SimulationSettings, VisField, clamp } from "@red_j/webgl-fluid-sim"
 import "./style.css"
 
 const canvas = document.getElementById('waves') as HTMLCanvasElement

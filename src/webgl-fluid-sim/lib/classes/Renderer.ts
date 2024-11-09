@@ -73,7 +73,7 @@ export class Renderer {
 
         this.particleObjects = {
             particleBuffer: gl.createBuffer(),
-            particleIndices: new Float32Array()
+            particleIndices: new Float32Array(0)
         }
         if (!this.particleObjects.particleBuffer) {
             throw new Error('Failed to create particle buffer')
