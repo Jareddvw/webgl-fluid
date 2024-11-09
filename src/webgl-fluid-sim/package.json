@@ -1,6 +1,6 @@
 {
   "name": "@red_j/webgl-fluid-sim",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "description": "WebGL2 fluid simulation library",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
