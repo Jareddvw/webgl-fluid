@@ -165,8 +165,10 @@ pauseButton.addEventListener('click', () => {
     settings.paused = !settings.paused
     if (settings.paused) {
         pauseButton.value = 'play'
+        video?.pause()
     } else {
         pauseButton.value = 'pause'
+        video?.play()
     }
 })
 
@@ -207,22 +209,84 @@ uploadButton.addEventListener('click', () => {
     imageUpload.click();
 });
 
+let video: HTMLVideoElement | null = null;
+async function processVideo(videoFile: File) {
+    video = document.createElement('video');
+    video.style.display = "none";
+    video.src = URL.createObjectURL(videoFile);
+  
+    await video.play();
+  
+    const canvas = document.createElement('canvas');
+    canvas.style.display = "none";
+    const context = canvas.getContext('2d');
+    
+    if (!context) throw new Error("Could not create 2D context");
+  
+    video.addEventListener('loadedmetadata', () => {
+      canvas.width = video?.videoWidth ?? 0;
+      canvas.height = video?.videoHeight ?? 0;
+    });
+
+    video.addEventListener('ended', () => video?.play())
+
+    const drawFrame = () => {
+      if (!video) return;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  
+      canvas.toBlob((blob) => {
+        if (blob) {
+            const image = new Image()
+            image.src = URL.createObjectURL(blob)
+            image.onload = () => {
+                settings.image = image
+                settings.drawImage = true
+            }
+        }
+      });
+      requestAnimationFrame(drawFrame);
+    }
+    requestAnimationFrame(drawFrame);
+  }
+
 imageUpload.addEventListener('change', (e) => {
+    // reset video and clean up
+    if (video) {
+        video.pause()
+        URL.revokeObjectURL(video.src)
+    }
+    video = null
     const file = (e.target as HTMLInputElement).files?.[0]
     if (!file) {
         return
     }
+    // check if file is an image or video
     const reader = new FileReader()
-    reader.onload = (e) => {
-        const image = new Image()
-        image.src = e.target?.result as string
-        image.onload = () => {
-            settings.image = image
-            settings.drawImage = true
-            addImageDiv()
-        }
+    const isImage = file.type.startsWith('image')
+    const isVideo = file.type.startsWith('video')
+    if (!isImage && !isVideo) {
+        return
     }
-    reader.readAsDataURL(file)
+    if (isImage) {
+        reader.onload = (e) => {
+            const image = new Image()
+            image.src = e.target?.result as string
+            image.onload = () => {
+                settings.image = image
+                settings.drawImage = true
+                addImageDiv()
+            }
+        }
+        reader.readAsDataURL(file)
+        return
+    }
+    processVideo(file)
+        .catch((err) => {
+            console.error(err)
+        })
+        .finally(() => {
+            addImageDiv()
+        })
 })
 
 // add or update div with image name and 'reapply' button if the image has been uploaded

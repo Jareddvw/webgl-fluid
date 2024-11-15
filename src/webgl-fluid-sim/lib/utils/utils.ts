@@ -37,6 +37,9 @@ export const makeTextureFromImage = (gl: WebGL2RenderingContext, image: HTMLImag
     if (!texture) {
         throw new Error('Could not create texture')
     }
+    if (!image.complete) {
+        throw new Error('Image not loaded')
+    }
     // flip image horizontally
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1)
     gl.bindTexture(gl.TEXTURE_2D, texture)

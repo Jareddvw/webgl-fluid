@@ -4,9 +4,6 @@ This is a 2D fluid simulation written in TS using WebGL2. You can play around wi
 - When visualizing dye: either right-click or double-click then drag to add dye.
 - press S to take a screenshot.
 
-When you visualize particles, try changing each of the toggles and sliders. There are a lot of configurations that all look pretty cool, and different from one another.
-Some good ones: dense particles with no trails, sparse particles with long trails, dense particles no trails and no regeneration...
-
 ### Running the app
 Install [pnpm](https://pnpm.io/installation) with corepack or npm, then run
 ```
