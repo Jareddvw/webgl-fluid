@@ -4,8 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --mode local-dev",
+    "dev:published": "vite",
     "build": "tsc && vite build",
+    "build:local": "tsc && vite build --mode local-dev",
     "preview": "vite preview"
   },
   "devDependencies": {
@@ -13,6 +15,6 @@
     "vite": "^5.2.0"
   },
   "dependencies": {
-    "@red_j/webgl-fluid-sim": "^1.0.3"
+    "@red_j/webgl-fluid-sim": "^1.0.6"
   }
 }
