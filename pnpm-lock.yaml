@@ -6,8 +6,8 @@ settings:
 
 dependencies:
   '@red_j/webgl-fluid-sim':
-    specifier: ^1.0.6
-    version: 1.0.6
+    specifier: ^1.0.7
+    version: 1.0.7
 
 devDependencies:
   typescript:
@@ -226,8 +226,8 @@ packages:
     dev: true
     optional: true
 
-  /@red_j/webgl-fluid-sim@1.0.6:
-    resolution: {integrity: sha512-VQHYesnMaHpRaNbweY+LTOMdOgNWzWnkl0H3CQQdjI6/WnxQaP8sYdS9AcyF2GqaT0vSH2Wi0WcRaQqmCcKXuw==}
+  /@red_j/webgl-fluid-sim@1.0.7:
+    resolution: {integrity: sha512-SlRcGciG6rogpOagRX6ahgAMAhgSo8jHtzrLQNCa6cCrvggwBkl0ZtTk0RtkIjK5ud0zNVPzYMdFv+Ng7Yrx0w==}
     dev: false
 
   /@rollup/rollup-android-arm-eabi@4.17.0:
