@@ -95,12 +95,14 @@ export class Simulation {
 
 
     private advect() {
-        const { settings, texelDims, deltaT, renderer } = this;
+        const { settings, texelDims, deltaT, renderer, gl} = this;
         const { advectionProgram, advectParticleProgram } = renderer.getPrograms();
         const { particlesFBO, velocityFBO, dyeFBO, imageFBO } = renderer.getFBOs();
         const { visField, gridScale, manualBilerp, advectionDissipation, regenerateParticles } = settings;
         advectionProgram.use()
+        const aspectRatio = gl.canvas.width / gl.canvas.height; 
         advectionProgram.setUniforms({
+            aspectRatio,
             dt: deltaT,
             gridScale,
             texelDims,

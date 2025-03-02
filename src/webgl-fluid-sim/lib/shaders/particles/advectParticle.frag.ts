@@ -29,14 +29,14 @@ void main() {
     vec2 q = texture(quantity, coords).xy;
 
     // Get the velocity at the current position, u(x, t)
-    vec2 v = texture(velocity, q).xy;
+    vec2 u = texture(velocity, q).xy;
     
     // Combine for q(x + u(x, t) * dt, t)
-    vec2 newPos = q.xy + v.xy * dt * (1.0 / gridScale);
+    vec2 newPos = q.xy + u * dt * (1.0 / gridScale);
 
     if (
         regenerateParticles == 1.0 && 
-        random((newPos + texCoord.xy + v + q) * dt) < 0.00000001
+        random((newPos + texCoord.xy + u + q) * dt) < 0.00000001
     ) {
         // Reset the particle to its original position
         newPos = texCoord.xy;

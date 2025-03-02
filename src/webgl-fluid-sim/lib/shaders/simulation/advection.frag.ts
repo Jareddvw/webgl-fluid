@@ -9,6 +9,7 @@ uniform sampler2D quantity; // quantity to advect (can be velocity)
 uniform float dt;
 uniform float gridScale; // Grid scale
 uniform vec2 texelDims; // 1 / texture dimensions
+uniform float aspectRatio; // texelDims.x / texelDims.y
 uniform bool useBilerp;
 uniform float dissipation;
 
@@ -33,10 +34,11 @@ void main() {
     vec2 coords = texCoord.xy;
 
     // Get the velocity at the current position, u(x, t)
-    vec4 v = texture(velocity, coords);
+    vec2 u = texture(velocity, coords).xy;
+    u.x /= aspectRatio;
 
     // Combine for x - u(x, t) * dt
-    vec2 newPos = coords - v.xy * dt * (1.0 / gridScale);
+    vec2 newPos = coords - u * dt * (1.0 / gridScale);
 
     if (useBilerp) {
         // return q(x - u(x, t) * dt, t)
