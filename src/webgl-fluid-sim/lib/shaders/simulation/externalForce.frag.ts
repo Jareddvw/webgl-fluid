@@ -36,7 +36,11 @@ void main() {
             newVelocity += vec2(impulseDirections[i].xy) * c;
         } else if (impulseTypes[i] == 1) {
             // Constant force
-            newVelocity += vec2(impulseDirections[i].xy) * impulseMagnitudes[i];
+            vec2 diff = impulsePositions[i] - fragPos;
+            diff.y /= aspectRatio;
+            if (length(diff) < 0.01) {
+                newVelocity += vec2(impulseDirections[i].xy) * impulseMagnitudes[i];
+            }
         }
     }
 

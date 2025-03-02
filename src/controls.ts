@@ -306,9 +306,11 @@ canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault()
 })
 
-let lastClicked = 0
+let lastClickedTime = 0
+let prevSpeed = 0
+let lastMovedTime = 0
 const onMouseDown = (e: PointerEvent) => {
-    const doubleClick = performance.now() - lastClicked < 300
+    const doubleClick = performance.now() - lastClickedTime < 300
     if (
         (e instanceof MouseEvent && e.button === 2) ||
         doubleClick
@@ -322,10 +324,12 @@ const onMouseDown = (e: PointerEvent) => {
     const y = 1 - (e as MouseEvent).offsetY / canvas.height
     lastMousePos = [x, y]
     canvas.setPointerCapture((e as PointerEvent).pointerId)
-    lastClicked = performance.now()
+    lastClickedTime = performance.now()
 }
 const onMouseMove = (e: PointerEvent) => {
     if (canvas.hasPointerCapture(e.pointerId)) {
+        // F = ma
+        // set m = 1, F = a
         const x = e.offsetX / canvas.width
         const y = 1 - e.offsetY / canvas.height
         const diff = [x - lastMousePos[0], y - lastMousePos[1]]
@@ -333,16 +337,23 @@ const onMouseMove = (e: PointerEvent) => {
         // normalize diff for direction
         const len = Math.sqrt(diff[0] * diff[0] + diff[1] * diff[1])
         const normalizedDiff: [number, number] = (len === 0 || len < 0.002) ? [0, 0] : [diff[0] / len, diff[1] / len]
+
+        const [lastX, lastY] = lastMousePos
+        const currSpeed = Math.sqrt((x - lastX)**2 + (y - lastY)**2)
+        const now = performance.now()
+        const acceleration = Math.max(currSpeed - prevSpeed, 0) / (now - Math.max(lastClickedTime, lastMovedTime))
+
         lastMousePos =  [x, y]
+        lastMovedTime = now
         settings.externalForces = [
-            {
-                impulseDirection: normalizedDiff,
-                impulsePosition: [x, y],
-                impulseRadius: 0.0001,
-                impulseMagnitude: 1,
-                impulseType: ImpulseType.GaussianSplat,
-            },
-        ]
+                {
+                    impulseDirection: normalizedDiff,
+                    impulsePosition: [x, y],
+                    impulseRadius: 0.0001,
+                    impulseMagnitude: acceleration * 300,
+                    impulseType: ImpulseType.GaussianSplat,
+                },
+            ]
     }
 }
 const onMouseUp = (e: PointerEvent) => {
